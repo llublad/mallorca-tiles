@@ -24,11 +24,10 @@ import matplotlib.pyplot as plt
 
 def compute_zones(bound_abs_path, dis_abs_path, dat_abs_path, out_abs_path, num_instances_list):
 
-
-    gpd_bound = geopandas.read_file(bound_abs_path)
+    gpd_bound = geopandas.read_file(bound_abs_path, encoding='utf-8')
     gpd_bound.plot()
 
-    gpd_dis = geopandas.read_file(dis_abs_path)
+    gpd_dis = geopandas.read_file(dis_abs_path, encoding='utf-8')
     gpd_dis.plot()
 
     plt.show()
