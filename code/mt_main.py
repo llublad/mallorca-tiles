@@ -4,33 +4,65 @@
 #
 # Alumne: Lluís Bernat Ladaria
 
-#
+
+# ******************
 # Zone design - main
-#
+# ******************
+
 
 #
 # system libraries
 #
+
 import json
 import os
 import sys
 import shutil
 import geopandas
 import matplotlib.pyplot as plt
+import logging as log
+
+
+#
+# ours libraries and classes
+#
+
+
 
 #
 # main program
 #
 
-def compute_zones(bound_abs_path, dis_abs_path, dat_abs_path, out_abs_path, num_instances_list):
+def compute_zones(bound_abs_path: str, dis_abs_path: str, dat_abs_path: str,
+                  out_abs_path: str, pop_card_list: list,
+                  logger: log.Logger):
+    """
+    Principal function.
 
+    It loads the maps, constructs the connection matrix and
+    applies the genetic algorithm
+
+    :param bound_abs_path:
+    :param dis_abs_path:
+    :param dat_abs_path:
+    :param out_abs_path:
+    :param pop_card_list:
+    :param logger:
+    :return:
+    """
+
+    # Load boundary map
     gpd_bound = geopandas.read_file(bound_abs_path, encoding='utf-8')
-    gpd_bound.plot()
 
+    # Load districts map
     gpd_dis = geopandas.read_file(dis_abs_path, encoding='utf-8')
-    gpd_dis.plot()
 
-    plt.show()
+    if logger.level == log.DEBUG:
+        gpd_bound.plot()
+        gpd_dis.plot()
+        plt.show()
+
+
 
     #
     # loader = ls.Loader()
@@ -75,20 +107,50 @@ def compute_zones(bound_abs_path, dis_abs_path, dat_abs_path, out_abs_path, num_
 
 
 if __name__ == '__main__':
+    #
+    # constants
+    #
+
     BOUNDARY_REL_PATH = '../maps/products/coast_line_geometry.geojsonl.json'
     DISTRICTS_REL_PATH = '../maps/products/districts_geometry.geojsonl.json'
     DATA_REL_PATH = '../habs/PAD2020.csv'
     OUTPUT_REL_PATH = '../outputs'
+    POPULATION_CARDINALITIES = [20, 50]
+    LOG_LEVEL = log.DEBUG
 
+
+    #
+    # setup logger
+    #
+
+    logger = log.getLogger('mt_logger')
+    logger.setLevel(LOG_LEVEL)
+    log_format = log.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
+    # writing to stderr
+    handler = log.StreamHandler(sys.stderr)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+
+
+    #
+    # setting parameters
+    #
+
+    # test different population cardinalities
+    population_card_list = POPULATION_CARDINALITIES
+
+    # calculate path
     current_program_path = os.path.dirname(os.path.realpath(__file__))
-
     boundary_abs_path = os.path.normpath(current_program_path + '/' + BOUNDARY_REL_PATH)
     districts_abs_path = os.path.normpath(current_program_path + '/' + DISTRICTS_REL_PATH)
     data_abs_path = os.path.normpath(current_program_path + '/' + DATA_REL_PATH)
     outputs_abs_path = os.path.normpath(current_program_path + '/' + OUTPUT_REL_PATH)
 
-    num_instances_list = [20, 50]  # test different population cardinalities
+    # say hello
+    logger.info("*** Starting process ***")
 
-    compute_zones(boundary_abs_path, districts_abs_path, data_abs_path, outputs_abs_path, num_instances_list)
+    compute_zones(boundary_abs_path, districts_abs_path, data_abs_path,
+                  outputs_abs_path, population_card_list, logger)
 
-    print("End of process.")
+    # say goodbye
+    logger.info("*** End of process ***")
