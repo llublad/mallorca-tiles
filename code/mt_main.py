@@ -18,7 +18,7 @@ import json
 import os
 import sys
 import shutil
-import geopandas
+import geopandas as gpd
 import matplotlib.pyplot as plt
 import logging as log
 
@@ -32,6 +32,38 @@ import logging as log
 #
 # main program
 #
+
+
+def is_connected(geo: gpd.GeoSeries, i: int, j: int) -> bool:
+
+    dist = geo.distance(geo.iloc[j]).iloc[i]
+    return dist == 0
+
+
+def calc_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
+    """
+    Calculates a dictionary of lists with the neighbours districts
+    :param from_geo:
+    :param by_field:
+    :return:
+    """
+    # A GeoSerie is needed to calc distances
+    # Project it to meters (EPSG:3857)
+    geos = gpd.GeoSeries(from_geo["geometry"]).to_crs("EPSG:3857")
+
+    # Our new dict of lists
+    conn_dict = {}
+
+    for i in range(2): #len(from_geo)):
+        new_key = from_geo[by_field].iloc[i]
+        conn_dict[new_key] = []
+        dist = geos.distance(geos.iloc[i])
+        for j in range(len(dist)):
+            if (i != j) and (dist[j] == 0):
+                conn_dict[new_key].append(from_geo[by_field].iloc[j])
+
+    return conn_dict
+
 
 def compute_zones(bound_abs_path: str, dis_abs_path: str, dat_abs_path: str,
                   out_abs_path: str, pop_card_list: list,
@@ -52,16 +84,21 @@ def compute_zones(bound_abs_path: str, dis_abs_path: str, dat_abs_path: str,
     """
 
     # Load boundary map
-    gpd_bound = geopandas.read_file(bound_abs_path, encoding='utf-8')
+    logger.info(f"Loading boundary map form {bound_abs_path}")
+    gpd_bound = gpd.read_file(bound_abs_path, encoding='utf-8')
 
     # Load districts map
-    gpd_dis = geopandas.read_file(dis_abs_path, encoding='utf-8')
+    logger.info(f"Loading district map form {dis_abs_path}")
+    gpd_dis = gpd.read_file(dis_abs_path, encoding='utf-8')
 
     if logger.level == log.DEBUG:
         gpd_bound.plot()
         gpd_dis.plot()
-        plt.show()
+        #plt.show()
 
+    conn_dict = calc_conn_dict(from_geo=gpd_dis, by_field="CODE")
+    logger.debug("District connectivity dictionary:")
+    logger.debug(conn_dict)
 
 
     #
