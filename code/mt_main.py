@@ -28,44 +28,51 @@ import logging as log
 #
 
 
-
 #
 # main program
 #
 
 
-def is_connected(geo: gpd.GeoSeries, i: int, j: int) -> bool:
+def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -> list:
+    """
+    Make the 'me' list of neighbours
+    """
+    # The new list
+    my_neighbours = []
 
-    dist = geo.distance(geo.iloc[j]).iloc[i]
-    return dist == 0
+    dist = from_geos.distance(from_geos.iloc[me])
+    for j in range(len(dist)):
+        if (me != j) and (dist[j] == 0):
+            my_neighbours.append(ind_vals[j])
+
+    return my_neighbours
 
 
-def calc_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
+def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
     """
     Calculates a dictionary of lists with the neighbours districts
     :param from_geo:
     :param by_field:
     :return:
     """
-    # A GeoSerie is needed to calc distances
-    # Project it to meters (EPSG:3857)
-    geos = gpd.GeoSeries(from_geo["geometry"]).to_crs("EPSG:3857")
-
     # Our new dict of lists
     conn_dict = {}
 
-    for i in range(2): #len(from_geo)):
+    # A GeoSeries object is needed to calc distances
+    # Project it to meters (EPSG:3857)
+    geos = gpd.GeoSeries(from_geo["geometry"]).to_crs("EPSG:3857")
+    index_values = list(from_geo[by_field])
+
+    for i in range(2):  # len(from_geo)):
         new_key = from_geo[by_field].iloc[i]
-        conn_dict[new_key] = []
-        dist = geos.distance(geos.iloc[i])
-        for j in range(len(dist)):
-            if (i != j) and (dist[j] == 0):
-                conn_dict[new_key].append(from_geo[by_field].iloc[j])
+        conn_dict[new_key] = make_my_neighbours_list(from_geos=geos, me=i, ind_vals=index_values)
 
     return conn_dict
 
 
-def compute_zones(bound_abs_path: str, dis_abs_path: str, dat_abs_path: str,
+def compute_zones(bound_abs_path: str,
+                  dis_abs_path: str, dis_index_field: str,
+                  dat_abs_path: str, dat_index_field: str,
                   out_abs_path: str, pop_card_list: list,
                   logger: log.Logger):
     """
@@ -76,7 +83,9 @@ def compute_zones(bound_abs_path: str, dis_abs_path: str, dat_abs_path: str,
 
     :param bound_abs_path:
     :param dis_abs_path:
+    :param dis_index_field:
     :param dat_abs_path:
+    :param dat_index_field:
     :param out_abs_path:
     :param pop_card_list:
     :param logger:
@@ -94,12 +103,12 @@ def compute_zones(bound_abs_path: str, dis_abs_path: str, dat_abs_path: str,
     if logger.level == log.DEBUG:
         gpd_bound.plot()
         gpd_dis.plot()
-        #plt.show()
+        # plt.show()
 
-    conn_dict = calc_conn_dict(from_geo=gpd_dis, by_field="CODE")
+    logger.info("Making district connectivity matrix from districts map. Its a dictionary of lists...")
+    conn_dict = make_dist_conn_dict(from_geo=gpd_dis, by_field=dis_index_field)
     logger.debug("District connectivity dictionary:")
     logger.debug(conn_dict)
-
 
     #
     # loader = ls.Loader()
@@ -150,11 +159,12 @@ if __name__ == '__main__':
 
     BOUNDARY_REL_PATH = '../maps/products/coast_line_geometry.geojsonl.json'
     DISTRICTS_REL_PATH = '../maps/products/districts_geometry.geojsonl.json'
+    DISTRICTS_INDEX_FIELD = 'CODE'
     DATA_REL_PATH = '../habs/PAD2020.csv'
+    DATA_INDEX_FIELD = 'CODE'
     OUTPUT_REL_PATH = '../outputs'
     POPULATION_CARDINALITIES = [20, 50]
     LOG_LEVEL = log.DEBUG
-
 
     #
     # setup logger
@@ -167,7 +177,6 @@ if __name__ == '__main__':
     handler = log.StreamHandler(sys.stderr)
     handler.setFormatter(log_format)
     logger.addHandler(handler)
-
 
     #
     # setting parameters
@@ -186,7 +195,9 @@ if __name__ == '__main__':
     # say hello
     logger.info("*** Starting process ***")
 
-    compute_zones(boundary_abs_path, districts_abs_path, data_abs_path,
+    compute_zones(boundary_abs_path,
+                  districts_abs_path, DISTRICTS_INDEX_FIELD,
+                  data_abs_path, DATA_INDEX_FIELD,
                   outputs_abs_path, population_card_list, logger)
 
     # say goodbye
