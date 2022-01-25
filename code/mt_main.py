@@ -4,11 +4,14 @@
 #
 # Alumne: Lluís Bernat Ladaria
 
+"""
+Zone design - main
+==================
 
-# ******************
-# Zone design - main
-# ******************
-
+Main program for uniform distributed zone design solutions
+It loads and prepares input data, then computes a solution
+for every tuple of parameters
+"""
 
 #
 # system libraries
@@ -26,15 +29,17 @@ import logging as log
 # ours libraries and classes
 #
 
+from mt_zones import Partition
+
 
 #
-# main program
+# main program functions
 #
-
 
 def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -> list:
     """
     Make the 'me' list of neighbours
+
     """
     assert len(from_geos) == len(ind_vals), \
         "Alert, length of geos index values list is not equal to geos cardinality"
@@ -46,7 +51,8 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
 
     for j in range(len(is_in_touch)):
         if (me != j) and is_in_touch[j]:
-            my_neighbours.append(ind_vals[j])
+            new_entry = {ind_vals[j]: 1.}
+            my_neighbours.append(new_entry)
 
     return my_neighbours
 
@@ -54,12 +60,13 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
 def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
     """
     Calculates a dictionary of lists with the neighbours districts
+
     :param from_geo:
     :param by_field:
     :return:
     """
     # Our new dict of lists
-    conn_dict = {}
+    conn_dict = dict()
 
     # A GeoSeries object is needed to calc distances
     # Project it to meters (EPSG:3857)
@@ -73,35 +80,35 @@ def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
     return conn_dict
 
 
-def prepare_data(bound_abs_path: str,
-                 dis_abs_path: str, dis_index_field: str,
-                 dat_abs_path: str, dat_index_field: str,
-                 logger: log.Logger):
+def prepare_data(bound_path: str,
+                 dis_path: str, dis_index_field: str,
+                 dat_path: str, dat_index_field: str,
+                 logger: log.Logger) -> object:
     """
     Load maps, and alpha data. Also constructs the connection matrix
 
-    :param bound_abs_path:
-    :param dis_abs_path:
+    :param bound_path:
+    :param dis_path:
     :param dis_index_field:
-    :param dat_abs_path:
+    :param dat_path:
     :param dat_index_field:
     :param logger:
     :return:
     """
 
     # Load alphanumeric data
-    logger.info(f"Loading alphanumeric data from {dat_abs_path}")
-    pd_dat = pd.read_csv(filepath_or_buffer=dat_abs_path, sep=";", encoding='utf-8')
+    logger.info(f"Loading alphanumeric data from {dat_path}")
+    pd_dat = pd.read_csv(filepath_or_buffer=dat_path, sep=";", encoding='utf-8')
     pd_dat.set_index(dat_index_field)
-    logger.debug(pd_dat.info)
+    logger.debug(f"\n{pd_dat.info}")
 
     # Load boundary map
-    logger.info(f"Loading boundary map from {bound_abs_path}")
-    gpd_bound = gpd.read_file(filename=bound_abs_path, encoding='utf-8')
+    logger.info(f"Loading boundary map from {bound_path}")
+    gpd_bound = gpd.read_file(filename=bound_path, encoding='utf-8')
 
     # Load districts map
-    logger.info(f"Loading district map from {dis_abs_path}")
-    gpd_dis = gpd.read_file(filename=dis_abs_path, encoding='utf-8')
+    logger.info(f"Loading district map from {dis_path}")
+    gpd_dis = gpd.read_file(filename=dis_path, encoding='utf-8')
 
     if logger.level == log.DEBUG:
         gpd_bound.plot()
@@ -117,9 +124,9 @@ def prepare_data(bound_abs_path: str,
     return gpd_bound, gpd_dis, pd_dat, conn_dict
 
 
-def compute_zones(data, conn, num_zones, population):
-    pass
-
+#
+# main program
+#
 
 if __name__ == '__main__':
     #
@@ -165,15 +172,21 @@ if __name__ == '__main__':
     # say hello
     logger.info("*** Starting process ***")
 
+    # load and prepare all the data, also compute districts connection dictionary
     gpd_bound, gpd_dis, pd_dat, conn_dict = \
-        prepare_data(boundary_abs_path,
-                     districts_abs_path, DISTRICTS_INDEX_FIELD,
-                     data_abs_path, DATA_INDEX_FIELD,
-                     logger)
-    
+        prepare_data(bound_path=boundary_abs_path, dis_path=districts_abs_path, dis_index_field=DISTRICTS_INDEX_FIELD,
+                     dat_path=data_abs_path, dat_index_field=DATA_INDEX_FIELD, logger=logger)
+
+    # compute zones for all the tuples {NUM_ZONES x POPULATION_CARDINALITIES}
     for nz in NUM_ZONES: 
         for pc in POPULATION_CARDINALITIES:
-            compute_zones(data=pd_dat, conn=conn_dict, num_zones=nz, population=pc)
+            solution = Partition(
+                data=pd_dat, conn=conn_dict,
+                num_zones=nz, pop_card=pc,
+                logger=logger)
+            solution.fit()
+            solution.save_map(output_path=outputs_abs_path)
+            del solution
 
     # say goodbye
     logger.info("*** End of process ***")
