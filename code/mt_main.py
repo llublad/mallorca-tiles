@@ -13,6 +13,7 @@ It loads and prepares input data, then computes a solution
 for every tuple of parameters
 """
 
+
 #
 # system libraries
 #
@@ -21,14 +22,15 @@ import os
 import sys
 import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import logging as log
+import matplotlib.pyplot as plt
 
 
 #
 # ours libraries and classes
 #
 
+import mt_common as our
 from mt_zones import Partition
 
 
@@ -36,25 +38,70 @@ from mt_zones import Partition
 # main program functions
 #
 
-def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -> list:
+def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -> dict:
     """
     Make the 'me' list of neighbours
 
+    The output is a dictionary with two entries:
+    - One with neighbours id codes list
+    - The other is a p-value proportional to the 'me'
+      entity neighbour border common lenght
+    The lists are ascending ordered by the p-value.
+
+    Example:
+        {
+            'NEIGHBOURS_ID_LIST': ['07019', '07018', '07010', '07025'],
+            'NEIGHBOURS_PROB_LIST': [0.138687, 0.162345, 0.307197, 0.391771]
+        }
     """
     assert len(from_geos) == len(ind_vals), \
         "Alert, length of geos index values list is not equal to geos cardinality"
 
     # The new list
-    my_neighbours = []
+    my_neighbours = list()
 
+    # Who are my neighbours?
     is_in_touch = from_geos.touches(from_geos.iloc[me])
 
+    # How many borderline we share?
+    border_thickness = 1  # use 1 meter buffer to calc common 'area' border
+    # compute myself 1 meter oversized
+    me_buffered = from_geos.iloc[me].buffer(distance=border_thickness)
+    # now compute overlapped area from my 1-meter bigger version vs rest
+    common_border_area = from_geos.intersection(me_buffered).area
+
+    # Calculate relative border areas shared with my neighbours
+
+    # initialize divisor to non-zero value to avoid the (rare) div/0 case error
+    # (i.e. an isolated district)
+    total_common_area = 1e-6
+
+    # Calculate total border length
     for j in range(len(is_in_touch)):
         if (me != j) and is_in_touch[j]:
-            new_entry = {ind_vals[j]: 1.}
+            total_common_area += common_border_area[j]
+
+    # Compute ranking list
+    for j in range(len(is_in_touch)):
+        if (me != j) and is_in_touch[j]:
+            new_entry = [
+                ind_vals[j],
+                round(common_border_area[j] / total_common_area, ndigits=6)
+            ]
             my_neighbours.append(new_entry)
 
-    return my_neighbours
+    # Now order list ascending using common border coefficient
+    my_neighbours.sort(key=lambda neighbour_entry: neighbour_entry[1])
+
+    # And finnally compose a dictionary with each one vector (the two lists)
+    my_neighbours_dict = {
+        our.DICT_DISTRICT_NEIGHBOURS_ID_LIST:
+            [item for item, _ in my_neighbours],
+        our.DICT_DISTRICT_NEIGHBOURS_SLICE_LIST:
+            [item for _, item in my_neighbours]
+    }
+
+    return my_neighbours_dict
 
 
 def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
@@ -74,8 +121,8 @@ def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
     index_values = list(from_geo[by_field])
 
     for i in range(len(from_geo)):
-        new_key = from_geo[by_field].iloc[i]
-        conn_dict[new_key] = make_my_neighbours_list(from_geos=geos, me=i, ind_vals=index_values)
+        new_district_id = from_geo[by_field].iloc[i]
+        conn_dict[new_district_id] = make_my_neighbours_list(from_geos=geos, me=i, ind_vals=index_values)
 
     return conn_dict
 
@@ -117,7 +164,7 @@ def prepare_data(bound_path: str,
 
     logger.info("Making district connectivity matrix from districts map. Really its a dictionary of lists...")
     conn_dict = make_dist_conn_dict(from_geo=gpd_dis, by_field=dis_index_field)
-    logger.debug("District connectivity dictionary:")
+    logger.debug("District connectivity matrix:")
     logger.debug(conn_dict)
     logger.info("...done district connectivity matrix")
 
