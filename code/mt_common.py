@@ -17,14 +17,26 @@ using genetic algorithms
 #
 # some constants
 #
-DICT_DISTRICT_NEIGHBOURS_ID_LIST = 'NEIGHBOURS_ID_LIST'
-DICT_DISTRICT_NEIGHBOURS_SLICE_LIST = 'NEIGHBOURS_PROB_LIST'
+DATA_CODE_FIELD = 'CODE'
+DATA_VALUE_FIELD = 'VALUE'
+
+DICT_DISTRICT_NEIGHBOURS_CODE_LIST = 'NEIGHBOURS_CODE_LIST'
+DICT_DISTRICT_NEIGHBOURS_COST_LIST = 'NEIGHBOURS_COST_LIST'
 
 
 #
 # messages
 #
 
-LOG_ERROR_DATA_SYNTAX = "Some input data has incorrect syntax"
-LOG_ERROR_NUM_ZONES = "'num_zones' must be an integer between 1 and data cardinality"
-LOG_ERROR_POP_CARD = "'pop_card' must be an even integer"
+MG_INFO_PARTITION_INIT = \
+    "Created a new PartitionDesigner object with zones={} and population={}"
+MG_ERROR_DATA = \
+    "'data' must be a DataFrame with 'CODE' and 'VALUE' fields"
+MG_ERROR_CONN = \
+    "'conn' must be a dictionary with a key entry for each 'data' 'CODE' value"
+MG_ERROR_NUM_ZONES = \
+    "'num_zones' must be an integer between 1 and data cardinality"
+MG_ERROR_POP_CARD = \
+    "'pop_card' must be an even positive integer"
+MG_ERROR_ENTRY_NOT_FOUND = \
+    "'{}' key not found in '{}' dictionary"
