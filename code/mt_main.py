@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 #
 
 import mt_common as our
-from mt_zones import Partition
+from mt_zones import PartitionDesigner
 
 
 #
@@ -42,17 +42,26 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
     """
     Make the 'me' list of neighbours
 
-    The output is a dictionary with two entries:
+    The output is a dictionary with two entries (two lists=:
     - One with neighbours id codes list
-    - The other is a p-value proportional to the 'me'
-      entity neighbour border common lenght
-    The lists are ascending ordered by the p-value.
+    - The other is a 'neighbourhood' cost value that we
+      define as 1 minus a p-value proportional to the 'me'
+      entity neighbour border common length.
+      So the bigger a common borderline segment is,
+      the lower is the associated cost value
+    The lists are ascending ordered by the cost value.
 
     Example:
-        {
-            'NEIGHBOURS_ID_LIST': ['07019', '07018', '07010', '07025'],
-            'NEIGHBOURS_PROB_LIST': [0.138687, 0.162345, 0.307197, 0.391771]
-        }
+        Sóller (id: '07061') generated dictionary entry:
+        '07061': {
+            'NEIGHBOURS_ID_LIST': ['07025', '07010', '07018', '07019'],
+            'NEIGHBOURS_COST_LIST': [0.608229, 0.692803, 0.837655, 0.861313]
+            }
+        As seen, the neighbours entities in ascending cost are:
+        - id: '07025' ('Fornalutx'): who has the bigger common border-line segment
+        - id: '07010' ('Bunyola')
+        - id: '07018' ('Deià')
+        - id: '07019' ('Escorca'): the smaller common border-line segment
     """
     assert len(from_geos) == len(ind_vals), \
         "Alert, length of geos index values list is not equal to geos cardinality"
@@ -65,7 +74,7 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
 
     # How many borderline we share?
     border_thickness = 1  # use 1 meter buffer to calc common 'area' border
-    # compute myself 1 meter oversized
+    # compute myself 1 meter over-sized
     me_buffered = from_geos.iloc[me].buffer(distance=border_thickness)
     # now compute overlapped area from my 1-meter bigger version vs rest
     common_border_area = from_geos.intersection(me_buffered).area
@@ -86,18 +95,18 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
         if (me != j) and is_in_touch[j]:
             new_entry = [
                 ind_vals[j],
-                round(common_border_area[j] / total_common_area, ndigits=6)
+                round(1.0 - common_border_area[j] / total_common_area, ndigits=6)
             ]
             my_neighbours.append(new_entry)
 
-    # Now order list ascending using common border coefficient
+    # Now order list ascending using neighbourhood calculated cost value
     my_neighbours.sort(key=lambda neighbour_entry: neighbour_entry[1])
 
-    # And finnally compose a dictionary with each one vector (the two lists)
+    # And finally compose a dictionary with each one vector (the two lists)
     my_neighbours_dict = {
-        our.DICT_DISTRICT_NEIGHBOURS_ID_LIST:
+        our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST:
             [item for item, _ in my_neighbours],
-        our.DICT_DISTRICT_NEIGHBOURS_SLICE_LIST:
+        our.DICT_DISTRICT_NEIGHBOURS_COST_LIST:
             [item for _, item in my_neighbours]
     }
 
@@ -129,7 +138,7 @@ def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
 
 def prepare_data(bound_path: str,
                  dis_path: str, dis_index_field: str,
-                 dat_path: str, dat_index_field: str,
+                 dat_path: str, dat_index_field: str, dat_value_field: str,
                  logger: log.Logger) -> object:
     """
     Load maps, and alpha data. Also constructs the connection matrix
@@ -139,6 +148,7 @@ def prepare_data(bound_path: str,
     :param dis_index_field:
     :param dat_path:
     :param dat_index_field:
+    :param dat_value_field:
     :param logger:
     :return:
     """
@@ -146,7 +156,13 @@ def prepare_data(bound_path: str,
     # Load alphanumeric data
     logger.info(f"Loading alphanumeric data from {dat_path}")
     pd_dat = pd.read_csv(filepath_or_buffer=dat_path, sep=";", encoding='utf-8')
-    pd_dat.set_index(dat_index_field)
+    # change relevant columns names
+    mapper = {
+        dat_index_field: our.DATA_CODE_FIELD,
+        dat_value_field: our.DATA_VALUE_FIELD
+    }
+    pd_dat.rename(mapper=mapper, axis=1, inplace=True)
+    # pd_dat.set_index(our.DATA_CODE_FIELD, inplace=True)
     logger.debug(f"\n{pd_dat.info}")
 
     # Load boundary map
@@ -181,13 +197,19 @@ if __name__ == '__main__':
     #
 
     BOUNDARY_REL_PATH = '../maps/products/coast_line_geometry.geojsonl.json'
+
     DISTRICTS_REL_PATH = '../maps/products/districts_geometry.geojsonl.json'
     DISTRICTS_INDEX_FIELD = 'CODE'
+
     DATA_REL_PATH = '../habs/PAD2020.csv'
     DATA_INDEX_FIELD = 'Cod_Terri'
+    DATA_VALUE_FIELD = 'Total'
+
     OUTPUT_REL_PATH = '../outputs'
+
     NUM_ZONES = [10, 20]
     POPULATION_CARDINALITIES = [20, 50]
+
     LOG_LEVEL = log.DEBUG
 
     #
@@ -222,12 +244,13 @@ if __name__ == '__main__':
     # load and prepare all the data, also compute districts connection dictionary
     gpd_bound, gpd_dis, pd_dat, conn_dict = \
         prepare_data(bound_path=boundary_abs_path, dis_path=districts_abs_path, dis_index_field=DISTRICTS_INDEX_FIELD,
-                     dat_path=data_abs_path, dat_index_field=DATA_INDEX_FIELD, logger=logger)
+                     dat_path=data_abs_path, dat_index_field=DATA_INDEX_FIELD, dat_value_field=DATA_VALUE_FIELD,
+                     logger=logger)
 
     # compute zones for all the tuples {NUM_ZONES x POPULATION_CARDINALITIES}
     for nz in NUM_ZONES: 
         for pc in POPULATION_CARDINALITIES:
-            solution = Partition(
+            solution = PartitionDesigner(
                 data=pd_dat, conn=conn_dict,
                 num_zones=nz, pop_card=pc,
                 logger=logger)
