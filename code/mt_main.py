@@ -66,31 +66,31 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
     assert len(from_geos) == len(ind_vals), \
         "Alert, length of geos index values list is not equal to geos cardinality"
 
-    # The new list
+    # the new list
     my_neighbours = list()
 
-    # Who are my neighbours?
+    # who are my neighbours?
     is_in_touch = from_geos.touches(from_geos.iloc[me])
 
-    # How many borderline we share?
+    # how many borderline we share?
     border_thickness = 1  # use 1 meter buffer to calc common 'area' border
     # compute myself 1 meter over-sized
     me_buffered = from_geos.iloc[me].buffer(distance=border_thickness)
     # now compute overlapped area from my 1-meter bigger version vs rest
     common_border_area = from_geos.intersection(me_buffered).area
 
-    # Calculate relative border areas shared with my neighbours
+    # calculate relative border areas shared with my neighbours
 
     # initialize divisor to non-zero value to avoid the (rare) div/0 case error
     # (i.e. an isolated district)
     total_common_area = 1e-6
 
-    # Calculate total border length
+    # calculate total border length
     for j in range(len(is_in_touch)):
         if (me != j) and is_in_touch[j]:
             total_common_area += common_border_area[j]
 
-    # Compute ranking list
+    # compute ranking list
     for j in range(len(is_in_touch)):
         if (me != j) and is_in_touch[j]:
             new_entry = [
@@ -99,10 +99,10 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
             ]
             my_neighbours.append(new_entry)
 
-    # Now order list ascending using neighbourhood calculated cost value
+    # now order list ascending using neighbourhood calculated cost value
     my_neighbours.sort(key=lambda neighbour_entry: neighbour_entry[1])
 
-    # And finally compose a dictionary with each one vector (the two lists)
+    # and finally compose a dictionary with each one vector (the two lists)
     my_neighbours_dict = {
         our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST:
             [item for item, _ in my_neighbours],
@@ -121,11 +121,11 @@ def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
     :param by_field:
     :return:
     """
-    # Our new dict of lists
+    # our new dict of lists
     conn_dict = dict()
 
-    # A GeoSeries object is needed to calc distances
-    # Project it to meters (EPSG:3857)
+    # a GeoSeries object is needed to calc distances
+    # project it to meters (EPSG:3857)
     geos = gpd.GeoSeries(from_geo.geometry).to_crs(crs="EPSG:3857")
     index_values = list(from_geo[by_field])
 
@@ -141,7 +141,10 @@ def prepare_data(bound_path: str,
                  dat_path: str, dat_index_field: str, dat_value_field: str,
                  logger: log.Logger) -> object:
     """
-    Load maps, and alpha data. Also constructs the connection matrix
+    Load maps, and alpha data.
+    Also constructs the district connection matrix (actually a nested dict)
+    and the valid area, that is a map that represents
+    the area that can contain a valid zone centroid
 
     :param bound_path:
     :param dis_path:
@@ -153,7 +156,7 @@ def prepare_data(bound_path: str,
     :return:
     """
 
-    # Load alphanumeric data
+    # load alphanumeric data
     logger.info(f"Loading alphanumeric data from {dat_path}")
     pd_dat = pd.read_csv(filepath_or_buffer=dat_path, sep=";", encoding='utf-8')
     # change relevant columns names
@@ -165,11 +168,11 @@ def prepare_data(bound_path: str,
     # pd_dat.set_index(our.DATA_CODE_FIELD, inplace=True)
     logger.debug(f"\n{pd_dat.info}")
 
-    # Load boundary map
+    # load boundary map
     logger.info(f"Loading boundary map from {bound_path}")
     gpd_bound = gpd.read_file(filename=bound_path, encoding='utf-8')
 
-    # Load districts map
+    # load districts map
     logger.info(f"Loading district map from {dis_path}")
     gpd_dis = gpd.read_file(filename=dis_path, encoding='utf-8')
 
@@ -178,13 +181,16 @@ def prepare_data(bound_path: str,
         gpd_dis.plot()
         # plt.show()
 
+    logger.info(our.MG_INFO_COMPUTING_VALID_AREA)
+    valid_area = gpd_dis.geometry.unary_union
+
     logger.info("Making district connectivity matrix from districts map. Really its a dictionary of lists...")
     conn_dict = make_dist_conn_dict(from_geo=gpd_dis, by_field=dis_index_field)
     logger.debug("District connectivity matrix:")
     logger.debug(conn_dict)
     logger.info("...done district connectivity matrix")
 
-    return gpd_bound, gpd_dis, pd_dat, conn_dict
+    return gpd_bound, gpd_dis, valid_area, pd_dat, conn_dict
 
 
 #
@@ -241,8 +247,9 @@ if __name__ == '__main__':
     # say hello
     logger.info("*** Starting process ***")
 
-    # load and prepare all the data, also compute districts connection dictionary
-    gpd_bound, gpd_dis, pd_dat, conn_dict = \
+    # load and prepare all the data, also compute districts connectivity dictionary
+    # and valid zone centroid area
+    gpd_bound, gpd_dis, valid_area, pd_dat, conn_dict = \
         prepare_data(bound_path=boundary_abs_path, dis_path=districts_abs_path, dis_index_field=DISTRICTS_INDEX_FIELD,
                      dat_path=data_abs_path, dat_index_field=DATA_INDEX_FIELD, dat_value_field=DATA_VALUE_FIELD,
                      logger=logger)
@@ -252,6 +259,7 @@ if __name__ == '__main__':
         for pc in POPULATION_CARDINALITIES:
             solution = PartitionDesigner(
                 data=pd_dat, conn=conn_dict,
+                valid_area=valid_area,
                 num_zones=nz, pop_card=pc,
                 logger=logger)
             solution.fit()
