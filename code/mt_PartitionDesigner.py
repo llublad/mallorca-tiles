@@ -31,6 +31,7 @@ import random
 #
 
 import mt_common as our
+from mt_Partition import Partition
 
 
 #
@@ -39,11 +40,16 @@ import mt_common as our
 
 def check_data(data: pd.DataFrame) -> bool:
     # sanity checks for DataFrame
+    #
     if not type(data) is pd.DataFrame:
         raise TypeError(our.MG_ERROR_DATA)
 
     fields = list(data)
 
+    # the DataFrame must have at least two fields
+    #
+
+    # a unique code and the value to be taken as population
     is_correct = our.DATA_CODE_FIELD in fields and our.DATA_VALUE_FIELD in fields
 
     if not is_correct:
@@ -54,20 +60,27 @@ def check_data(data: pd.DataFrame) -> bool:
 
 def check_conn(conn: dict, data: pd.DataFrame) -> bool:
     # sanity checks for connectivity dictionary
+    #
     if not type(conn) is dict:
         raise TypeError(our.MG_ERROR_CONN)
 
     is_correct = True
 
     for entity_code in data[our.DATA_CODE_FIELD]:
+        # all loaded entities from csv must have a geospatial entity
         if entity_code not in conn:
             raise ValueError(our.MG_ERROR_ENTRY_NOT_FOUND.format(entity_code, 'conn'))
         else:
             entry = conn.get(entity_code)
+            # all the needed geospatial entities must have
+            # two lists
+
+            # one with all his neighbours
             if our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST not in entry:
                 raise ValueError(
                     our.MG_ERROR_ENTRY_NOT_FOUND.format(our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST,
                                                         entity_code))
+            # and another with the cost to 'cross to' the neighbour
             if our.DICT_DISTRICT_NEIGHBOURS_COST_LIST not in entry:
                 raise ValueError(
                     our.MG_ERROR_ENTRY_NOT_FOUND.format(our.DICT_DISTRICT_NEIGHBOURS_COST_LIST,
@@ -78,9 +91,11 @@ def check_conn(conn: dict, data: pd.DataFrame) -> bool:
 
 def check_valid_area_map(valid: BaseGeometry) -> bool:
     # sanity checks for valid area map
+    #
     if not type(valid) in [BaseGeometry, Polygon, MultiPolygon]:
         raise TypeError(our.MG_ERROR_VALID_AREA_MAP)
 
+    # it must be a valid (closed) polygon or multipolygon
     is_correct = valid.is_valid
 
     if not is_correct:
@@ -91,9 +106,11 @@ def check_valid_area_map(valid: BaseGeometry) -> bool:
 
 def check_num_zones(num_zones: int, data: pd.DataFrame) -> bool:
     # check if num_zones is between 1 and data cardinality
+    #
     if not (type(num_zones) is int and type(data) is pd.DataFrame):
         raise TypeError(our.MG_ERROR_NUM_ZONES)
 
+    # not more zones than the available number of districts is possible
     is_correct = (num_zones >= 1) and (num_zones <= len(data))
 
     if not is_correct:
@@ -107,6 +124,7 @@ def check_pop_card(pop_card: int) -> bool:
     if not type(pop_card) is int:
         raise TypeError(our.MG_ERROR_POP_CARD)
 
+    # population cardinality must be even and greater than 0
     is_correct = (pop_card % 2 == 0) and (pop_card > 0)
 
     if not is_correct:
@@ -120,70 +138,26 @@ def check_pop_card(pop_card: int) -> bool:
 #
 
 
-class Zone:
-    def __init__(self):
-        pass
-
-
-class Partition:
-    """
-    Object that encapsulates the genotype of a zone partition
-    and all the necessary methods to work with
-    """
-
-    def __init__(self, data: pd.DataFrame, conn: dict,
-                 valid_area: BaseGeometry,
-                 num_zones: int, logger: log.Logger):
-        # create an instance of the partition genotype
-        self.data = data
-        self.conn = conn
-        self.valid_area = valid_area
-        self.num_zones = num_zones
-        self.logger = logger
-
-        [self.x_min, self.y_min, self.x_max, self.y_max] = \
-            self.valid_area.bounds
-
-        num_districts = len(data)
-        self.num_districts = num_districts
-
-        self.logger.debug(
-            our.MG_INFO_PARTITION_INIT.format(self.num_districts, self.num_zones))
-
-        self.genotype = list()
-        self._generate_genotype()
-
-        return
-
-    def _generate_genotype(self):
-        # generate as many zone centroids as num_zones value
-        if len(self.genotype) > 0:
-            raise OverflowError  # TODO
-
-        i = 0
-        while i < self.num_zones:
-            x = random.uniform(self.x_min, self.x_max)
-            y = random.uniform(self.y_min, self.y_max)
-            p = Point(x, y)
-            if self.valid_area.contains(p):
-                i += 1
-                self.genotype.append(p)
-
-        return
-
-
 class PartitionDesigner:
     """
     Object that encapsulates all methods and information
     to compute a solution for the Zone Design problem using
-    a Genetic Algorithm
+    a Genetic Algorithm described at
+
+    Bação, F., Lobo, V. & Painho, M.
+    Applying genetic algorithms to zone design.
+    Soft Comput 9, 341–348 (2005).
+    https://doi.org/10.1007/s00500-004-0413-4
 
     :param data: a pandas DataFrame with all entities
-        that will conform the partition (a register for each one).
+        (a register for each one) that will conform
+        the minimum units (that we call distritcs)
+        of the partition.
         At least must contain two columns:
         - 'CODE' field: unique code to identify the row
         - 'VALUE' field: the population value for the entity
-    :param conn: a dictionary with an entry for every entity of the partition.
+    :param conn: a dictionary with an entry for each
+        minimum entity (district) of the partition.
         Every entry must contain:
         - key: the 'CODE' value for the entity.
           Must be one of the 'CODE' values form 'data' DataFrame
@@ -191,8 +165,10 @@ class PartitionDesigner:
             - NEIGHBOURS_CODE_LIST: the neighbours CODE values list
             - NEIGHBOURS_COST_LIST: the neighbour cost list (floats in [0, 1] range)
             The two lists must be sorted by cost (ascending)
-    :param num_zones: an integer with the number of desired zones
-    :param pop_card: an integer with the population cardinality
+    :param num_zones: an integer with the
+        number of desired zones to generate.
+        Each zone will contain at least one distritc
+    :param pop_card: an integer with the (initial) population cardinality
     :param logger: a Logger object
 
     Example for conn dict:
@@ -243,27 +219,37 @@ class PartitionDesigner:
                     self.num_zones,
                     self.pop_card))
 
-            self.partition_population = list()
+            self.partition = list()
             self._generate_initial_population()
         else:  # will never be executed, cause raise clauses in check_whatever functions...
-            raise  # ...but in case will run, we force a generic Exception
+            # ...but in case would run, we force a generic Exception to be noticed about
+            raise Exception(our.MG_DEBUG_INTERNAL_ERROR)
 
-        return
+        pass
 
     def _generate_initial_population(self):
         # populate (empty) list of genotypes
-        if len(self.partition_population) > 0:
-            raise OverflowError  # TODO
+        #
+        if len(self.partition) > 0:
+            raise OverflowError(our.MG_DEBUG_INTERNAL_ERROR)
 
+        # will generate pop_card Partition objects
         for i in range(self.pop_card):
-            self.partition_population.append(
-                Partition(data=self.data, conn=self.conn, valid_area=self.valid_area, num_zones=self.num_zones,
+            self.partition.append(
+                Partition(data=self.data, conn=self.conn,
+                          valid_area=self.valid_area, num_zones=self.num_zones,
                           logger=self.logger)
             )
 
-        return
+        pass
 
     def fit(self):
+        # apply the described GA
+        # and find the best solution
+        #
+        for part in self.partition:
+            part.fit()
+
         pass
 
     def save_map(self, output_path):
