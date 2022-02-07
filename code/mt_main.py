@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 #
 
 import mt_common as our
-from mt_zones import PartitionDesigner
+from mt_PartitionDesigner import PartitionDesigner
 
 
 #
@@ -64,7 +64,7 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
         - id: '07019' ('Escorca'): the smaller common border-line segment
     """
     assert len(from_geos) == len(ind_vals), \
-        "Alert, length of geos index values list is not equal to geos cardinality"
+        "Alert, length of geoserie index values list is not equal to geoserie cardinality"
 
     # the new list
     my_neighbours = list()
@@ -76,14 +76,15 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
     border_thickness = 1  # use 1 meter buffer to calc common 'area' border
     # compute myself 1 meter over-sized
     me_buffered = from_geos.iloc[me].buffer(distance=border_thickness)
-    # now compute overlapped area from my 1-meter bigger version vs rest
+    # now compute overlapped area from my 1-meter bigger version vs rest geometric entities
     common_border_area = from_geos.intersection(me_buffered).area
 
     # calculate relative border areas shared with my neighbours
+    #
 
     # initialize divisor to non-zero value to avoid the (rare) div/0 case error
     # (i.e. an isolated district)
-    total_common_area = 1e-6
+    total_common_area = our.EPS_DIV0
 
     # calculate total border length
     for j in range(len(is_in_touch)):
