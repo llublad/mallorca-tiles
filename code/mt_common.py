@@ -16,6 +16,8 @@ using genetic algorithms
 #
 # some constants
 #
+EPS_DIV0 = 1e-6  # A very small number to avoid divide by zero errors at some geo-calcs
+
 DATA_CODE_FIELD = 'CODE'
 DATA_VALUE_FIELD = 'VALUE'
 
@@ -26,6 +28,8 @@ DICT_DISTRICT_NEIGHBOURS_COST_LIST = 'NEIGHBOURS_COST_LIST'
 # messages
 #
 
+MG_DEBUG_INTERNAL_ERROR = \
+    "Please debug this internal error"
 MG_INFO_COMPUTING_VALID_AREA = \
     "Computing the valid zone centroid map"
 MG_INFO_PARTITION_DESIGNER_INIT = \
