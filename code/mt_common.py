@@ -18,6 +18,11 @@ using genetic algorithms
 #
 EPS_DIV0 = 1e-6  # A very small number to avoid divide by zero errors at some geo-calcs
 
+GA_MAX_ITERATIONS = 1000
+GA_NOIMPROV_ITERATIONS = 200
+GA_CROSSOVER_PROB = 0.95
+GA_MUTATION_PROB = 0.001
+
 DATA_CODE_FIELD = 'CODE'
 DATA_VALUE_FIELD = 'VALUE'
 
@@ -30,6 +35,7 @@ DICT_DISTRICT_NEIGHBOURS_COST_LIST = 'NEIGHBOURS_COST_LIST'
 
 MG_DEBUG_INTERNAL_ERROR = \
     "Please debug this internal error"
+
 MG_INFO_COMPUTING_VALID_AREA = \
     "Computing the valid zone centroid map"
 MG_INFO_PARTITION_DESIGNER_INIT = \
@@ -39,9 +45,9 @@ MG_INFO_PARTITION_INIT = \
     "Created a new Partition object to accommodate {} districts " \
     "into {} zones"
 MG_ERROR_DATA = \
-    "'data' must be a DataFrame with 'CODE' and 'VALUE' fields"
+    f"'data' must be a DataFrame with '{DATA_CODE_FIELD}' and '{DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \
-    "'conn' must be a dictionary with a key entry for each 'data' 'CODE' value"
+    f"'conn' must be a dictionary with a key entry for each 'data' '{DATA_CODE_FIELD}' value"
 MG_ERROR_VALID_AREA_MAP = \
     "'valid_area' must be a geometric object representing the valid zone centroids area"
 MG_ERROR_NUM_ZONES = \

@@ -35,6 +35,6 @@ class Zone:
     A zone contains a list of connected districts
     and all the methods to deal with
     """
-    def __init__(self):
 
+    def __init__(self):
         pass
