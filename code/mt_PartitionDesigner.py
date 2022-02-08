@@ -17,6 +17,8 @@ using genetic algorithms
 # system libraries
 #
 
+
+import matplotlib.pyplot as plt
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
@@ -24,11 +26,11 @@ from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
 from shapely.geometry.point import Point
 import logging as log
-import random
 
 #
 # ours libraries
 #
+
 
 import mt_common as our
 from mt_Partition import Partition
@@ -37,6 +39,28 @@ from mt_Partition import Partition
 #
 # functions
 #
+
+
+def get_func_select_best_value():
+    # return the proper function to select the best score
+    #
+
+    # for our case is the min() function
+    return min()
+
+
+def get_best_value_index(vector: list):
+    # return the position (zero indexed) of the best 'vector' value
+    #
+
+    # get the min/max function accordingly to our fitness function
+    func_select_best_value = get_func_select_best_value()
+
+    # search best value and its position in vector (a list)
+    position = vector.index(func_select_best_value(vector))
+
+    return position
+
 
 def check_data(data: pd.DataFrame) -> bool:
     # sanity checks for DataFrame
@@ -134,7 +158,7 @@ def check_pop_card(pop_card: int) -> bool:
 
 
 #
-# Classes
+# Class
 #
 
 
@@ -172,7 +196,7 @@ class PartitionDesigner:
     :param logger: a Logger object
 
     Example for conn dict:
-    ======================
+    ----------------------
     conn = {
         ... ,
         '07005':
@@ -202,6 +226,7 @@ class PartitionDesigner:
             check_pop_card(pop_card)
 
         if all_correct:
+
             # save all the params
             self.logger = logger
             self.data = data
@@ -219,11 +244,93 @@ class PartitionDesigner:
                     self.num_zones,
                     self.pop_card))
 
+            # the genotypes list
             self.partition = list()
-            self._generate_initial_population()
-        else:  # will never be executed, cause raise clauses in check_whatever functions...
-            # ...but in case would run, we force a generic Exception to be noticed about
+            # wich one is the best?
+            self.best_partition = None
+            # what is the last best partition score?
+            self.last_best_score = None
+            # also save the score history
+            self.best_score_history = list()
+
+        else:
+            # this will never be executed,
+            # because raise clauses in check_whatever functions...
+            # ...but in case would run,
+            # we force a generic Exception to be noticed about and debug it
             raise Exception(our.MG_DEBUG_INTERNAL_ERROR)
+
+        pass
+
+    def fit(self):
+        # apply the described GA
+        # and find the best solution
+        #
+
+        # make an initial population
+        # creating Partition instances
+        self._generate_initial_population()
+
+        # iteration counters
+        it = 0
+        it_ni = 0
+
+        # for each district,
+        # find the closest zone center
+        # and assign the district to the zone string
+        self._compose_partitions()
+
+        # then evaluate the fitness of each string
+        self._evaluate_partitions()
+
+        # which is the best partition?
+        self._select_best_partition()
+
+        while it < our.GA_MAX_ITERATIONS and \
+                it_ni < our.GA_NOIMPROV_ITERATIONS:
+            # select parental couples
+            # by tournament
+            self._generate_parental_couples()
+
+            # apply crossover operator
+            self._apply_crossover_operator()
+
+            # apply mutation operator
+            self._apply_mutation_operator()
+
+            # compose zone strings
+            self._compose_partitions()
+
+            # evaluate the fitness
+            self._evaluate_partitions()
+
+            # select survivors
+            self._select_next_generation()
+
+            # which is the best partition?
+            self._select_best_partition()
+
+            # update our score with the best one
+            self._update_our_score()
+
+            # if new score is better, then reset no improvement iterations counter
+            if self._is_new_score_better():
+                it_ni = 0
+            else:
+                it_ni += 1
+
+            # go to next iteration
+            it += 1
+
+        pass
+
+    def save_map(self, output_path):
+        # save a plot of the result at disk
+        #
+
+        if type(self.best_partition) == Partition:
+            self.best_partition.plot()
+            self.best_partition.savefig(output_path)
 
         pass
 
@@ -243,14 +350,94 @@ class PartitionDesigner:
 
         pass
 
-    def fit(self):
-        # apply the described GA
-        # and find the best solution
-        #
-        for part in self.partition:
-            part.fit()
+    def _select_best_partition(self):
+        # scan Partition object list
+        # looking for the best one
+        # and select it
+
+        # according to our fitness score function,
+        # get the best score value selection function
+        func_select_best_value = get_func_select_best_value()
+
+        self.best_partition = func_select_best_value(
+            self.partition, key=lambda part: part.score)
 
         pass
 
-    def save_map(self, output_path):
+    def _update_our_score(self):
+        # update the designer score
+        # with the best partition score
+
+        # save the last known best score into its list
+        if self.last_best_score is not None:
+            self.best_score_history.append(self.last_best_score)
+
+        self.last_best_score = self.best_partition.score
+
+        pass
+
+    def _is_new_score_better(self):
+        # return true if the new last score is better than the old last one
+        # return false otherwise
+
+        # if there are any data to compare ...
+        if len(self.best_score_history) > 0:
+            # ... then if the better one is the
+            # last_best_score ... True
+            is_new_score_better = get_best_value_index(
+                [self.best_score_history[-1],
+                 self.last_best_score]) == 1
+        else:
+            is_new_score_better = False
+
+        return is_new_score_better
+
+    def _compose_partitions(self):
+        # compose partition
+        # assigning the distrits to the nearest
+        # zone centroid point
+
+        for part in self.partition:
+            part.compose_partition()
+
+        pass
+
+    def _evaluate_partitions(self):
+        # calculate fitness function value
+        # for each partition
+
+        for part in self.partition:
+            part.evaluate()
+
+        pass
+
+    def _generate_parental_couples(self):
+        # generate parental couples
+        # by tournament
+
+        # TODO
+
+        pass
+
+    def _apply_crossover_operator(self):
+        # apply crossover operator
+        # with GA_CROSSOVER_PROB probability value
+
+        # TODO
+
+        pass
+
+    def _apply_mutation_operator(self):
+        # apply mutation operator
+        # with GA_MUTATION_PROB probability value
+
+        for part in self.partition:
+            part.mutate(prob=our.GA_MUTATION_PROB)
+
+        pass
+
+    def _select_next_generation(self):
+        # apply elitist strategy
+        # to select only the best partitions
+
         pass
