@@ -46,7 +46,7 @@ def get_func_select_best_value():
     #
 
     # for our case is the min() function
-    return min()
+    return min
 
 
 def get_best_value_index(vector: list):
@@ -324,16 +324,6 @@ class PartitionDesigner:
 
         pass
 
-    def save_map(self, output_path):
-        # save a plot of the result at disk
-        #
-
-        if type(self.best_partition) == Partition:
-            self.best_partition.plot()
-            self.best_partition.savefig(output_path)
-
-        pass
-
     def _generate_initial_population(self):
         # populate (empty) list of genotypes
         #
@@ -342,11 +332,24 @@ class PartitionDesigner:
 
         # will generate pop_card Partition objects
         for i in range(self.pop_card):
-            self.partition.append(
-                Partition(data=self.data, conn=self.conn,
-                          valid_area=self.valid_area, num_zones=self.num_zones,
-                          logger=self.logger)
-            )
+            # create a new one
+            new_part = Partition(data=self.data, conn=self.conn,
+                                 valid_area=self.valid_area, num_zones=self.num_zones,
+                                 logger=self.logger)
+
+            # also populate it with random zone future centroids
+            new_part.generate_genotype()
+
+            # and finally add to our collection
+            self._append_partition(part=new_part)
+
+        pass
+
+    def _append_partition(self, part: Partition):
+        # append Partition instance to
+        # partitions list
+
+        self.partition.append(part)
 
         pass
 
@@ -439,5 +442,24 @@ class PartitionDesigner:
     def _select_next_generation(self):
         # apply elitist strategy
         # to select only the best partitions
+
+        # how many partitions must maintain?
+        pop_card = self.pop_card
+
+        # obtain an ordered partition list by partition score
+        new_partition_list = sorted(self.partition, key=lambda part: part.score)
+
+        # and save only the first 'pop_card' ones
+        self.partition = new_partition_list[:pop_card]
+
+        pass
+
+    def save_map(self, output_path):
+        # save a plot of the result at disk
+        #
+
+        if type(self.best_partition) == Partition:
+            self.best_partition.plot()
+            self.best_partition.savefig(output_path)
 
         pass
