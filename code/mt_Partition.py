@@ -64,16 +64,19 @@ class Partition:
 
         # our list of centroids
         self.genotype = list()
-        self._generate_genotype()
+
+        # our list of zones
+        # will be populated at compose_partition() method
+        self.zones = list()
 
         # our solution score
         self.score = None
 
         pass
 
-    def _generate_genotype(self):
+    def generate_genotype(self):
         # generate as many zone centroids as num_zones value
-        #
+        # and add them to the genotype (a list)
 
         # initially the centroids list must be empty
         if len(self.genotype) > 0:
@@ -82,7 +85,6 @@ class Partition:
         for i in range(self.num_zones):
             p = self._generate_new_valid_point()
             self.genotype.append(p)
-            i += 1
 
         pass
 
@@ -116,13 +118,19 @@ class Partition:
         return p
 
     def compose_partition(self):
+        # for each district, locate the nearest
+        # zone future centroid and add it
+        # to this zone string
 
         # TODO
 
         pass
 
     def evaluate(self):
+        # calculate fitness function value
+        # for whole partition
 
+        self.score = 0
         # TODO
 
         pass
