@@ -12,14 +12,14 @@ Partition class - library
 # system libraries
 #
 
-import pandas as pd
-import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
+from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry.point import Point
+from shapely.geometry import shape
 import logging as log
 import random
+import numpy as np
 
 #
 # ours libraries
@@ -37,7 +37,7 @@ class Partition:
     A partition is a list of zones that covers a region map
     """
 
-    def __init__(self, data: pd.DataFrame, conn: dict,
+    def __init__(self, data: list, geodata: dict,
                  valid_area: BaseGeometry,
                  num_zones: int, logger: log.Logger):
         # create an instance of the partition genotype
@@ -45,7 +45,7 @@ class Partition:
 
         # save parameters
         self.data = data
-        self.conn = conn
+        self.geodata = geodata
         self.valid_area = valid_area
         self.num_zones = num_zones
         self.logger = logger
@@ -62,11 +62,11 @@ class Partition:
         [self.x_min, self.y_min, self.x_max, self.y_max] = \
             self.valid_area.bounds
 
-        # our list of centroids
+        # our list of zone centers
         self.genotype = list()
 
         # our list of zones
-        # will be populated at compose_partition() method
+        # will be populated at compose_partition() method execution
         self.zones = list()
 
         # our solution score
@@ -74,15 +74,30 @@ class Partition:
 
         pass
 
+    def restore_partition(self):
+        # prepare partition to populate zones again
+
+        # delete zones list
+        del self.zones
+        self.zones = list()
+
+        # restore score
+        self.score = None
+
+        pass
+
     def generate_genotype(self):
-        # generate as many zone centroids as num_zones value
+        # generate as many zone centers as num_zones value
         # and add them to the genotype (a list)
 
-        # initially the centroids list must be empty
+        # initially the centers list must be empty
         if len(self.genotype) > 0:
             raise OverflowError(our.MG_DEBUG_INTERNAL_ERROR)
 
-        for i in range(self.num_zones):
+        # how many zones?
+        num_zones = self.num_zones
+
+        for i in range(num_zones):
             p = self._generate_new_valid_point()
             self.genotype.append(p)
 
@@ -122,7 +137,47 @@ class Partition:
         # zone future centroid and add it
         # to this zone string
 
-        # TODO
+        # initially the zone list must be empty
+        if len(self.zones) > 0:
+            raise OverflowError(our.MG_DEBUG_INTERNAL_ERROR)
+
+        # how many zones?
+        num_zones = self.num_zones
+
+        # populate the zones instances list
+        # each one with a genotype center point
+        for center in self.genotype:
+            new_zone = Zone(center=center)
+            self.zones.append(new_zone)
+
+        # assign each district to the nearest zone center
+        # using the district centroid to zone center distance
+
+        for district in self.data:
+            # retrieve district interesting data
+            dis_code = district[our.LIST_DATA_CODE_COL]
+            dis_value = district[our.LIST_DATA_VALUE_COL]
+            dis_geodata = self.geodata.get(dis_code)
+            dis_centroid = Point(dis_geodata[our.DICT_DISTRICT_CENTROID_POINT])
+
+            # compute a numpy vector with the
+            # distances from the district centroid to each zone center
+            zone_distances = np.array(
+                [dis_centroid.distance(p) for p in self.genotype],
+                dtype=float)
+
+            # search the nearest zone center
+            zone_at = zone_distances.min()
+            nearest_zone_index = \
+                np.where(zone_distances == zone_at)[0][0]
+
+            nearest_zone: Zone = self.zones[nearest_zone_index]
+            nearest_zone.add_district(dis_code=dis_code,
+                                      dis_value=dis_value,
+                                      zone_dis=zone_at,
+                                      dis_geodata=dis_geodata)
+        # a debug line
+        # self.zones[0]._print_zone_dump()
 
         pass
 
@@ -130,8 +185,11 @@ class Partition:
         # calculate fitness function value
         # for whole partition
 
-        self.score = 0
+        score = 0
+
         # TODO
+
+        self.score = score
 
         pass
 
