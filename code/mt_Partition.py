@@ -37,7 +37,7 @@ class Partition:
     A partition is a list of zones that covers a region map
     """
 
-    def __init__(self, data: list, geodata: dict,
+    def __init__(self, data: list, mean_value: float, geodata: dict,
                  valid_area: BaseGeometry,
                  num_zones: int, logger: log.Logger):
         # create an instance of the partition genotype
@@ -45,6 +45,7 @@ class Partition:
 
         # save parameters
         self.data = data
+        self.mean_value = mean_value
         self.geodata = geodata
         self.valid_area = valid_area
         self.num_zones = num_zones
@@ -56,7 +57,8 @@ class Partition:
 
         # say hello
         self.logger.debug(
-            our.MG_INFO_PARTITION_INIT.format(self.num_districts, self.num_zones))
+            our.MG_INFO_PARTITION_INIT.format(
+                self.num_districts, self.num_zones, self.mean_value))
 
         # calc cartesian boundaris (the smaller rectangle that cotains the map)
         [self.x_min, self.y_min, self.x_max, self.y_max] = \
@@ -75,7 +77,7 @@ class Partition:
         pass
 
     def restore_partition(self):
-        # prepare partition to populate zones again
+        # prepare partition to populate zones list again
 
         # delete zones list
         del self.zones
@@ -174,7 +176,7 @@ class Partition:
             nearest_zone: Zone = self.zones[nearest_zone_index]
             nearest_zone.add_district(dis_code=dis_code,
                                       dis_value=dis_value,
-                                      zone_dis=zone_at,
+                                      zone_distance=zone_at,
                                       dis_geodata=dis_geodata)
         # a debug line
         # self.zones[0]._print_zone_dump()
@@ -185,9 +187,17 @@ class Partition:
         # calculate fitness function value
         # for whole partition
 
-        score = 0
+        score = 0.
 
-        # TODO
+        for zone in self.zones:
+            zone_value = zone.get_value()
+            zone.calc_cost()
+            zone_cost = zone.get_cost()
+            zone_score = abs(zone_value - self.mean_value) + self.mean_value * zone_cost
+            # TODO
+            # print("Zone score: ",zone_score, zone_value, self.mean_value)
+            # carry zone score
+            score += zone_score
 
         self.score = score
 

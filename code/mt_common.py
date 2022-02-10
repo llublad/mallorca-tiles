@@ -45,13 +45,17 @@ MG_DEBUG_INTERNAL_ERROR = \
 MG_INFO_COMPUTING_VALID_AREA = \
     "Computing the feasible zone centers region map"
 MG_INFO_PARTITION_DESIGNER_INIT = \
-    "Created a new PartitionDesigner object to accommodate {} districts " \
+    "Created a new PartitionDesigner object to accommodate a total of {} people at {} districts " \
     "into {} zones. Using an initial population of {} partition instances"
 MG_INFO_PARTITION_INIT = \
     "Created a new Partition object to accommodate {} districts " \
-    "into {} zones"
+    "into {} zones. The target value are {:.0f} people / zone"
 MG_INFO_PARTITIONS_RESTORED = \
     "All partition objects have been restored (stats zeroed and zone list deleted)"
+MG_INFO_INITIAL_SCORE = \
+    "The initial best score is {:.2f}"
+MG_INFO_LAST_SCORE = \
+    "After {} iteration/s, best score is {:.2f}"
 MG_ERROR_DATA = \
     f"'data' must be a DataFrame with '{PD_DATA_CODE_FIELD}' and '{PD_DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \

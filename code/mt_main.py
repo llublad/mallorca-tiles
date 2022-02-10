@@ -41,12 +41,12 @@ def make_my_neighbours_lists(from_geos: gpd.GeoSeries, me: int, ind_vals: list) 
 
     The output is a list with two entries (two lists)
     - One with neighbours code list
-    - The other is a 'neighbourhood' cross cost value that we
+    - The other is a 'neighbourhood' connectivity cost value that we
       define as 1 minus a p-value proportional to the 'me'
       entity neighbour border common length.
       So the bigger a common borderline segment is,
-      the lower is the associated cost value
-    The lists are ordered (ascending) by the cross cost value.
+      the lower is the associated connectivity cost value
+    The lists are ordered (ascending) by the connectivity cost value.
 
     Example:
         Sóller (id: '07061') generated dictionary entry:
@@ -132,12 +132,12 @@ def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
         # get district centroid
         centroid = geos[i].centroid
         centroid_point = (centroid.x, centroid.y)
-        # get district neighbours list and associated cross cost list
+        # get district neighbours list and associated connectivity cost list
         [code_list, cost_list] = make_my_neighbours_lists(
             from_geos=geos, me=i, ind_vals=index_values)
         # create a little dictionary containing:
         # - neighbours code list
-        # - cost to cross at neighbours list
+        # - connectivity cost neighbours list
         # - centroid point
         new_district_entry = {
             our.DICT_DISTRICT_CENTROID_POINT: centroid_point,

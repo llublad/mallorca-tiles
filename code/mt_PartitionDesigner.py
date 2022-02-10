@@ -113,7 +113,7 @@ def check_geodata(geodata: dict, data: list) -> bool:
                 raise ValueError(
                     our.MG_ERROR_ENTRY_NOT_FOUND.format(our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST,
                                                         entity_code))
-            # and another with the cost to 'cross to' the neighbour
+            # and another with the connectivity neighbour cost
             if our.DICT_DISTRICT_NEIGHBOURS_COST_LIST not in entry:
                 raise ValueError(
                     our.MG_ERROR_ENTRY_NOT_FOUND.format(our.DICT_DISTRICT_NEIGHBOURS_COST_LIST,
@@ -251,11 +251,18 @@ class PartitionDesigner:
             num_districts = len(data)
             self.num_districts = num_districts
 
+            self._calc_total_value()
+
             self.logger.info(
                 our.MG_INFO_PARTITION_DESIGNER_INIT.format(
+                    self.total_value,
                     self.num_districts,
                     self.num_zones,
                     self.pop_card))
+
+            # calculate the mean value per zone
+            # i.e. the desired number of people per zone
+            self.mean_value = self.total_value / self.num_zones
 
             # the genotypes list
             self.partition = list()
@@ -275,6 +282,20 @@ class PartitionDesigner:
 
         pass
 
+    def _calc_total_value(self):
+        # calculate the sum of the districts value
+        # this value is expected to be total population
+        # of the study region
+
+        total_value = 0
+
+        for district in self.data:
+            total_value += district[our.LIST_DATA_VALUE_COL]
+
+        self.total_value = total_value
+
+        pass
+
     def fit(self):
         # apply the described GA
         # and find the best solution
@@ -285,8 +306,13 @@ class PartitionDesigner:
         self._generate_initial_population()
 
         # iteration counters
+        #
+        # global counter
         it = 0
+        # no improvement counter
         it_ni = 0
+        # log frequency about progress info
+        it_module = max(1, our.GA_MAX_ITERATIONS // 10)
 
         # for each district,
         # find the closest zone center
@@ -298,6 +324,11 @@ class PartitionDesigner:
 
         # which is the best partition?
         self._select_best_partition()
+
+        # update our score with the best one
+        self._update_our_score()
+
+        self.logger.info(our.MG_INFO_INITIAL_SCORE.format(self.last_best_score))
 
         while it < our.GA_MAX_ITERATIONS and \
                 it_ni < our.GA_NOIMPROV_ITERATIONS:
@@ -339,6 +370,14 @@ class PartitionDesigner:
             # go to next iteration
             it += 1
 
+            # say something about our progress
+            if it % it_module == 0:
+                self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
+
+        # also log the last best score if not logged previously
+        if it % it_module != 0:
+            self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
+
         pass
 
     def _generate_initial_population(self):
@@ -350,7 +389,7 @@ class PartitionDesigner:
         # will generate pop_card Partition objects
         for i in range(self.pop_card):
             # create a new one
-            new_part = Partition(data=self.data, geodata=self.geodata,
+            new_part = Partition(data=self.data, mean_value=self.mean_value, geodata=self.geodata,
                                  valid_area=self.valid_area, num_zones=self.num_zones,
                                  logger=self.logger)
 
@@ -379,6 +418,7 @@ class PartitionDesigner:
         # get the best score value selection function
         func_select_best_value = get_func_select_best_value()
 
+        # select the best partition instance
         self.best_partition = func_select_best_value(
             self.partition, key=lambda part: part.score)
 
