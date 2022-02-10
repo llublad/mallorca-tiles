@@ -40,21 +40,27 @@ class Zone:
         # create a zone instance
         #
 
+        # check center contains a Point
+        if type(center) is not Point:
+            raise TypeError(our.MG_DEBUG_INTERNAL_ERROR)
+
         # save parameters
-        self.center = center
+        self._center = center
 
         # zone is composed by district entries
-        # we save them into this list
-        self.districts = list()
+        # we save them into this dictionary
+        self._districts = dict()
 
-        # also, must save the value of each district to be optimized
-        self.values = list()
-        # and the total zone value
-        self.zone_value = 0
+        # and this is the counter
+        self._n_districts = 0
+
+        # also, must save the total zone value
+        # (the sum of each district value)
+        self._zone_value = 0
 
         # an internal connectivity cost can be computed
         # based on each district NEIGHBOURS_COST_LIST dict entry
-        self.conn_cost = None
+        self._conn_cost = None
 
         pass
 
@@ -62,7 +68,7 @@ class Zone:
         # return the zone assigned center point
         #
 
-        center = self.center
+        center = self._center
 
         return center
 
@@ -70,17 +76,24 @@ class Zone:
         # return the total vallue of the zone
         #
 
-        zone_value = self.zone_value
+        zone_value = self._zone_value
 
         return zone_value
 
-    def add_district(self, dis_entry: list, dat_value: int):
+    def add_district(self, dis_code: str, dis_value: int,
+                     zone_dis: float, dis_geodata: dict):
         # add district entry to zone string
         # and its associated value
 
-        self.districts.append(dis_entry)
-        self.values.append(dat_value)
-        self.zone_value += dat_value
+        entry = {
+            1: dis_value,
+            2: zone_dis,
+            3: dis_geodata
+        }
+
+        self._districts[dis_code] = entry
+        self._zone_value += dis_value
+        self._n_districts += 1
 
         pass
 
@@ -88,10 +101,9 @@ class Zone:
         # for debugging purposes,
         # print a zone dump
 
-        print("Center:           ", self.center)
-        print("Distritcs list:   ", self.districts)
-        print("Values list:      ", self.values)
-        print("Total zone value: ", self.zone_value)
-        print("Connectivity cost:", self.conn_cost)
+        print("Center:           ", self._center)
+        print("Distritcs list:   ", self._districts)
+        print("Total zone value: ", self._zone_value)
+        print("Connectivity cost:", self._conn_cost)
 
         pass
