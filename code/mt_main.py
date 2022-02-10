@@ -13,7 +13,6 @@ It loads and prepares input data, then computes a solution
 for every tuple of parameters
 """
 
-
 #
 # system libraries
 #
@@ -23,8 +22,6 @@ import sys
 import pandas as pd
 import geopandas as gpd
 import logging as log
-import matplotlib.pyplot as plt
-
 
 #
 # ours libraries and classes
@@ -38,18 +35,18 @@ from mt_PartitionDesigner import PartitionDesigner
 # main program functions
 #
 
-def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -> dict:
+def make_my_neighbours_lists(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -> list:
     """
     Make the 'me' list of neighbours
 
-    The output is a dictionary with two entries (two lists=:
-    - One with neighbours id codes list
-    - The other is a 'neighbourhood' cost value that we
+    The output is a list with two entries (two lists)
+    - One with neighbours code list
+    - The other is a 'neighbourhood' cross cost value that we
       define as 1 minus a p-value proportional to the 'me'
       entity neighbour border common length.
       So the bigger a common borderline segment is,
       the lower is the associated cost value
-    The lists are ascending ordered by the cost value.
+    The lists are ordered (ascending) by the cross cost value.
 
     Example:
         Sóller (id: '07061') generated dictionary entry:
@@ -104,37 +101,53 @@ def make_my_neighbours_list(from_geos: gpd.GeoSeries, me: int, ind_vals: list) -
     my_neighbours.sort(key=lambda neighbour_entry: neighbour_entry[1])
 
     # and finally compose a dictionary with each one vector (the two lists)
-    my_neighbours_dict = {
-        our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST:
-            [item for item, _ in my_neighbours],
-        our.DICT_DISTRICT_NEIGHBOURS_COST_LIST:
-            [item for _, item in my_neighbours]
-    }
+    my_neighbours_lists = [
+        [item for item, _ in my_neighbours],
+        [item for _, item in my_neighbours]
+    ]
 
-    return my_neighbours_dict
+    return my_neighbours_lists
 
 
 def make_dist_conn_dict(from_geo: gpd.GeoDataFrame, by_field: str) -> dict:
     """
     Calculates a dictionary of lists with the neighbours districts
+    and the centroid points
 
     :param from_geo:
     :param by_field:
     :return:
     """
     # our new dict of lists
-    conn_dict = dict()
+    geodata_dict = dict()
 
-    # a GeoSeries object is needed to calc distances
-    # project it to meters (EPSG:3857)
-    geos = gpd.GeoSeries(from_geo.geometry).to_crs(crs="EPSG:3857")
+    # a GeoSeries object is needed to
+    # calculate centroids and intersection areas
+    geos = gpd.GeoSeries(from_geo.geometry)
     index_values = list(from_geo[by_field])
 
     for i in range(len(from_geo)):
-        new_district_id = from_geo[by_field].iloc[i]
-        conn_dict[new_district_id] = make_my_neighbours_list(from_geos=geos, me=i, ind_vals=index_values)
+        # get district code
+        new_district_code = from_geo[by_field].iloc[i]
+        # get district centroid
+        centroid = geos[i].centroid
+        centroid_point = (centroid.x, centroid.y)
+        # get district neighbours list and associated cross cost list
+        [code_list, cost_list] = make_my_neighbours_lists(
+            from_geos=geos, me=i, ind_vals=index_values)
+        # create a little dictionary containing:
+        # - neighbours code list
+        # - cost to cross at neighbours list
+        # - centroid point
+        new_district_entry = {
+            our.DICT_DISTRICT_CENTROID_POINT: centroid_point,
+            our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST: code_list,
+            our.DICT_DISTRICT_NEIGHBOURS_COST_LIST: cost_list
+        }
+        # and add to the geodata_dict dictionary (a nested dictionary)
+        geodata_dict[new_district_code] = new_district_entry
 
-    return conn_dict
+    return geodata_dict
 
 
 def prepare_data(bound_path: str,
@@ -162,12 +175,16 @@ def prepare_data(bound_path: str,
     pd_dat = pd.read_csv(filepath_or_buffer=dat_path, sep=";", encoding='utf-8')
     # change relevant columns names
     mapper = {
-        dat_index_field: our.DATA_CODE_FIELD,
-        dat_value_field: our.DATA_VALUE_FIELD
+        dat_index_field: our.PD_DATA_CODE_FIELD,
+        dat_value_field: our.PD_DATA_VALUE_FIELD
     }
     pd_dat.rename(mapper=mapper, axis=1, inplace=True)
-    # pd_dat.set_index(our.DATA_CODE_FIELD, inplace=True)
     logger.debug(f"\n{pd_dat.info}")
+
+    # construct comprehension list from data panda DataFrame
+    dat_list = [[row[0], row[1]]
+                for row in zip(pd_dat[our.PD_DATA_CODE_FIELD],
+                               pd_dat[our.PD_DATA_VALUE_FIELD])]
 
     # load boundary map
     logger.info(f"Loading boundary map from {bound_path}")
@@ -176,6 +193,9 @@ def prepare_data(bound_path: str,
     # load districts map
     logger.info(f"Loading district map from {dis_path}")
     gpd_dis = gpd.read_file(filename=dis_path, encoding='utf-8')
+    # project it to meters (EPSG:3857)
+    # to be able to calculate distances
+    gpd_dis = gpd_dis.to_crs(crs="EPSG:3857")
 
     if logger.level == log.DEBUG:
         gpd_bound.plot()
@@ -191,7 +211,7 @@ def prepare_data(bound_path: str,
     logger.debug(conn_dict)
     logger.info("...done district connectivity matrix")
 
-    return gpd_bound, gpd_dis, valid_area, pd_dat, conn_dict
+    return gpd_bound, gpd_dis, valid_area, dat_list, conn_dict
 
 
 #
@@ -250,16 +270,16 @@ if __name__ == '__main__':
 
     # load and prepare all the data, also compute districts connectivity dictionary
     # and valid zone centroid area
-    gpd_bound, gpd_dis, valid_area, pd_dat, conn_dict = \
+    gpd_bound, gpd_dis, valid_area, dat_list, geodata_dict = \
         prepare_data(bound_path=boundary_abs_path, dis_path=districts_abs_path, dis_index_field=DISTRICTS_INDEX_FIELD,
                      dat_path=data_abs_path, dat_index_field=DATA_INDEX_FIELD, dat_value_field=DATA_VALUE_FIELD,
                      logger=logger)
 
     # compute zones for all the tuples {NUM_ZONES x POPULATION_CARDINALITIES}
-    for nz in NUM_ZONES: 
+    for nz in NUM_ZONES:
         for pc in POPULATION_CARDINALITIES:
             solution = PartitionDesigner(
-                data=pd_dat, conn=conn_dict,
+                data=dat_list, geodata=geodata_dict,
                 valid_area=valid_area,
                 num_zones=nz, pop_card=pc,
                 logger=logger)
