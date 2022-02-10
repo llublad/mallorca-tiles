@@ -18,13 +18,10 @@ using genetic algorithms
 #
 
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
+from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry.point import Point
 import logging as log
 
 #
@@ -62,19 +59,24 @@ def get_best_value_index(vector: list):
     return position
 
 
-def check_data(data: pd.DataFrame) -> bool:
-    # sanity checks for DataFrame
+def check_data(data: list) -> bool:
+    # sanity checks for data list
     #
-    if not type(data) is pd.DataFrame:
+    if not type(data) is list:
         raise TypeError(our.MG_ERROR_DATA)
 
-    fields = list(data)
-
-    # the DataFrame must have at least two fields
-    #
-
-    # a unique code and the value to be taken as population
-    is_correct = our.DATA_CODE_FIELD in fields and our.DATA_VALUE_FIELD in fields
+    # the list must have at least one row
+    # and two fields at each row:
+    # - a unique code and
+    # - the value to be taken as population
+    if len(data) > 0:
+        is_correct = True
+        i = 0
+        while i < len(data) and is_correct:
+            is_correct = len(data[i]) >= 2
+            i += 1
+    else:
+        is_correct = False
 
     if not is_correct:
         raise ValueError(our.MG_ERROR_DATA)
@@ -82,24 +84,31 @@ def check_data(data: pd.DataFrame) -> bool:
     return is_correct
 
 
-def check_conn(conn: dict, data: pd.DataFrame) -> bool:
+def check_geodata(geodata: dict, data: list) -> bool:
     # sanity checks for connectivity dictionary
     #
-    if not type(conn) is dict:
+    if not type(geodata) is dict:
         raise TypeError(our.MG_ERROR_CONN)
 
     is_correct = True
 
-    for entity_code in data[our.DATA_CODE_FIELD]:
+    for entity in data:
         # all loaded entities from csv must have a geospatial entity
-        if entity_code not in conn:
-            raise ValueError(our.MG_ERROR_ENTRY_NOT_FOUND.format(entity_code, 'conn'))
+        entity_code = entity[our.LIST_DATA_CODE_COL]
+        if entity_code not in geodata:
+            raise ValueError(our.MG_ERROR_ENTRY_NOT_FOUND.format(entity_code, 'geodata'))
         else:
-            entry = conn.get(entity_code)
+            entry = geodata.get(entity_code)
             # all the needed geospatial entities must have
-            # two lists
+            # two lists and a centroid point
 
-            # one with all his neighbours
+            # check centroid point presence
+            if our.DICT_DISTRICT_CENTROID_POINT not in entry:
+                raise ValueError(
+                    our.MG_ERROR_ENTRY_NOT_FOUND.format(our.DICT_DISTRICT_CENTROID_POINT,
+                                                        entity_code))
+
+            # one list with all its neighbours
             if our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST not in entry:
                 raise ValueError(
                     our.MG_ERROR_ENTRY_NOT_FOUND.format(our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST,
@@ -128,10 +137,10 @@ def check_valid_area_map(valid: BaseGeometry) -> bool:
     return is_correct
 
 
-def check_num_zones(num_zones: int, data: pd.DataFrame) -> bool:
+def check_num_zones(num_zones: int, data: list) -> bool:
     # check if num_zones is between 1 and data cardinality
     #
-    if not (type(num_zones) is int and type(data) is pd.DataFrame):
+    if not (type(num_zones) is int and type(data) is list):
         raise TypeError(our.MG_ERROR_NUM_ZONES)
 
     # not more zones than the available number of districts is possible
@@ -173,19 +182,21 @@ class PartitionDesigner:
     Soft Comput 9, 341–348 (2005).
     https://doi.org/10.1007/s00500-004-0413-4
 
-    :param data: a pandas DataFrame with all entities
-        (a register for each one) that will conform
-        the minimum units (that we call distritcs)
-        of the partition.
-        At least must contain two columns:
-        - 'CODE' field: unique code to identify the row
-        - 'VALUE' field: the population value for the entity
-    :param conn: a dictionary with an entry for each
+    :param data: a list with all entities (that we call districts)
+        (a row for each one) that will conform
+        the smaller units of the partition.
+        At least must contain three entries by each row:
+        - a unique code to identify the row at pos LIST_DATA_CODE_COL
+        - the population value for the entity at pos LIST_DATA_VALUE_COL
+        - the centroid point of the entity at pos LIST_DATA_CENTROID_COL
+        (see mt_common.py)
+    :param geodata: a dictionary with an entry for each
         minimum entity (district) of the partition.
         Every entry must contain:
         - key: the 'CODE' value for the entity.
           Must be one of the 'CODE' values form 'data' DataFrame
-        - dictionary (nested) with at least two lists:
+        - dictionary (nested) with at least centroid point and two lists:
+            - CENTROID_POINT: the centroid of the geometry (Point type)
             - NEIGHBOURS_CODE_LIST: the neighbours CODE values list
             - NEIGHBOURS_COST_LIST: the neighbour cost list (floats in [0, 1] range)
             The two lists must be sorted by cost (ascending)
@@ -195,32 +206,34 @@ class PartitionDesigner:
     :param pop_card: an integer with the (initial) population cardinality
     :param logger: a Logger object
 
-    Example for conn dict:
+    Example for geodata dict:
     ----------------------
-    conn = {
+    geodata = {
         ... ,
         '07005':
             {
+            'CENTROID': (267760.62484048156, 4805381.809370395),
             'NEIGHBOURS_CODE_LIST': ['07011', '07021'],
             'NEIGHBOURS_COST_LIST': [0.134141, 0.865859]
             },
         '07006':
             {
+            'CENTROID': (370548.407976895, 4824561.963611906),
             'NEIGHBOURS_CODE_LIST': ['07014', '07062', '07051', '07041', '07055'],
             'NEIGHBOURS_COST_LIST': [0.695894, 0.737653, 0.74953, 0.901107, 0.915817]
             },
         ...
         }
         Note: according to example, the 'neighbourhood cost'
-        of the zone '07005'-'07011' will be 0.134141
+        of the zone '07005'-'07011' is 0.134141 (a low value)
     """
 
-    def __init__(self, data: pd.DataFrame, conn: dict, valid_area: BaseGeometry,
+    def __init__(self, data: list, geodata: dict, valid_area: BaseGeometry,
                  num_zones: int, pop_card: int, logger: log.Logger):
         # create object instance, if params syntax are correct
         all_correct = \
             check_data(data) and \
-            check_conn(conn, data) and \
+            check_geodata(geodata, data) and \
             check_valid_area_map(valid_area) and \
             check_num_zones(num_zones, data) and \
             check_pop_card(pop_card)
@@ -230,7 +243,7 @@ class PartitionDesigner:
             # save all the params
             self.logger = logger
             self.data = data
-            self.conn = conn
+            self.geodata = geodata
             self.valid_area = valid_area
             self.num_zones = num_zones
             self.pop_card = pop_card
@@ -298,6 +311,10 @@ class PartitionDesigner:
             # apply mutation operator
             self._apply_mutation_operator()
 
+            # reset partitions, because crossover and mutation
+            # operators have created new zone centers lists (the genotype)
+            self._restore_partitions()
+
             # compose zone strings
             self._compose_partitions()
 
@@ -333,11 +350,11 @@ class PartitionDesigner:
         # will generate pop_card Partition objects
         for i in range(self.pop_card):
             # create a new one
-            new_part = Partition(data=self.data, conn=self.conn,
+            new_part = Partition(data=self.data, geodata=self.geodata,
                                  valid_area=self.valid_area, num_zones=self.num_zones,
                                  logger=self.logger)
 
-            # also populate it with random zone future centroids
+            # also populate it with random zone future centers
             new_part.generate_genotype()
 
             # and finally add to our collection
@@ -394,6 +411,17 @@ class PartitionDesigner:
             is_new_score_better = False
 
         return is_new_score_better
+
+    def _restore_partitions(self):
+        # reset partition zones and stats
+
+        for part in self.partition:
+            part.restore_partition()
+
+        self.logger.debug(
+            our.MG_INFO_PARTITIONS_RESTORED)
+
+        pass
 
     def _compose_partitions(self):
         # compose partition
