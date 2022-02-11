@@ -16,7 +16,7 @@ using genetic algorithms
 #
 # system libraries
 #
-
+import random
 
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.point import Point
@@ -273,6 +273,13 @@ class PartitionDesigner:
             # also save the score history
             self.best_score_history = list()
 
+            # daddy and mummy list (crossover)
+            self.daddy = list()
+            self.mummy = list()
+
+            # our list of children
+            self.offspring = list()
+
         else:
             # this will never be executed,
             # because raise clauses in check_whatever functions...
@@ -353,7 +360,7 @@ class PartitionDesigner:
             self._evaluate_partitions()
 
             # select survivors
-            self._select_next_generation()
+            self._select_next_generation(hold=our.GA_NEXT_GENERATION_HOLD)
 
             # which is the best partition?
             self._select_best_partition()
@@ -482,11 +489,37 @@ class PartitionDesigner:
 
         pass
 
+    def _tournament_selection(self, n_adversaries: int):
+        # return the tournament winner
+        #
+
+        # construct the candidates list
+        candidates = self.partition
+
+        # select at most n_adversaries (with reemplacement)
+        adversaries = random.choices(candidates, k=n_adversaries)
+
+        best: Partition = None
+
+        for part in adversaries:
+            if best is None or get_best_value_index([best.get_score(), part.get_score()]) == 1:
+                best = part
+
+        return best
+
     def _generate_parental_couples(self):
         # generate parental couples
         # by tournament
 
-        # TODO
+        # mummy and daddy lists must be empty
+        if len(self.daddy) > 0 or len(self.mummy) > 0:
+            raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
+
+        for i in range(self.pop_card):
+            daddy = self._tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
+            self.daddy.append(daddy)
+            mummy = self._tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
+            self.mummy.append(mummy)
 
         pass
 
@@ -495,6 +528,8 @@ class PartitionDesigner:
         # with GA_CROSSOVER_PROB probability value
 
         # TODO
+
+        self.offspring = self.partition
 
         pass
 
@@ -507,9 +542,12 @@ class PartitionDesigner:
 
         pass
 
-    def _select_next_generation(self):
+    def _select_next_generation(self, hold: float):
         # apply elitist strategy
-        # to select only the best partitions
+        # to select only the best children partitions
+        # and mantain 'hold' percent of the best fathers
+
+        # TODO
 
         # how many partitions must maintain?
         pop_card = self.pop_card

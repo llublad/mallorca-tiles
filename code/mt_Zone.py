@@ -72,6 +72,10 @@ class Zone:
         # based on each district NEIGHBOURS_COST_LIST dict entry
         self._conn_cost = None
 
+        # the number of unconnected parts the zone has
+        # for full connected zone is equal to zero
+        self._unconnected_parts = None
+
         pass
 
     def get_center(self):
@@ -101,6 +105,17 @@ class Zone:
 
         return conn_cost
 
+    def get_unconnected(self):
+        # return the connectivity cost of the whole zone
+        #
+
+        if self._unconnected_parts is not None:
+            unconnected = self._unconnected_parts
+        else:
+            raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
+
+        return unconnected
+
     def add_district(self, dis_code: str, dis_value: int,
                      zone_distance: float, dis_geodata: dict):
         # add district entry to zone string
@@ -122,31 +137,61 @@ class Zone:
         # calculate the connectivity cost value
         # as the average of the connectivity cost
         # of each pair of districts that composed the zone
+        #
+        # also detects the number of isolated parts
+        # and updates its attribute accordindly
 
         # construct our districts list of codes
         district_code_list = list(self._districts.keys())
 
         total_cost = 0.
+        total_connections = 0
 
-        for d1_code in self._districts.keys():
-            d1_connections = 0
-            d1_cost = 0.
+        # if there are more than one district at the zone
+        # then calculate the connectivity (mean) cost
+        if len(district_code_list) > 1:
+            for d1_code in self._districts.keys():
+                d1_cost = 0.
+                d1_connections = 0
 
-            d1_geodata = self._districts.get(d1_code)[3]
-            d1_neighbours_list = d1_geodata[our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST]
-            d1_cost_list = d1_geodata[our.DICT_DISTRICT_NEIGHBOURS_COST_LIST]
+                d1_geodata = self._districts.get(d1_code)[3]  # 3: geodata dictionary entry
+                d1_neighbours_list = d1_geodata[our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST]
+                d1_cost_list = d1_geodata[our.DICT_DISTRICT_NEIGHBOURS_COST_LIST]
 
-            common_list = _intersection(district_code_list, d1_neighbours_list)
+                # compute the list with the common districts codes
+                my_zone_neighbours_list = _intersection(district_code_list, d1_neighbours_list)
 
-            for code in common_list:
-                i = d1_neighbours_list.index(code)
-                d1_cost += d1_cost_list[i]
-                d1_connections += 1
+                for code in my_zone_neighbours_list:
+                    i = d1_neighbours_list.index(code)
+                    d1_cost += d1_cost_list[i]
+                    d1_connections += 1
 
-            total_cost += d1_cost
+                total_cost += d1_cost
+                total_connections += d1_connections
 
+            self._compute_unconnected_parts()
+        else:
+            self._unconnected_parts = 0  # in 1-district zones there are not unconnected parts
+
+        if total_connections > 0:
+            # calculate the average cost
+            # the lower, the better
+            mean_cost = total_cost / total_connections
+        else:
+            # assign maximum mean_cost value to penalize 1-district zones
+            # or zones with all its distritcs unconnected
+            mean_cost = 1.
+ 
+        self._conn_cost = mean_cost
+
+        pass
+
+    def _compute_unconnected_parts(self):
         # TODO
-        self._conn_cost = total_cost / 1
+
+        unconnected = 0
+
+        self._unconnected_parts = unconnected
 
         pass
 

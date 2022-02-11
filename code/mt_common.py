@@ -16,12 +16,17 @@ using genetic algorithms
 #
 # some constants
 #
-EPS_DIV0 = 1e-6  # A very small number to avoid divide by zero errors at some geo-calcs
 
-GA_MAX_ITERATIONS = 10
-GA_NOIMPROV_ITERATIONS = 2
+# Genetic Algorithm hiperparameters
+GA_MAX_ITERATIONS = 100
+GA_NOIMPROV_ITERATIONS = 20
 GA_CROSSOVER_PROB = 0.95
-GA_MUTATION_PROB = 0.001
+GA_MUTATION_PROB = 0.01
+GA_TOURNAMENT_ADVERSARIES = 4
+GA_NEXT_GENERATION_HOLD = 0.20  # mantain this percentage of fathers between generations
+
+# math constants
+EPS_DIV0 = 1e-6  # A very small number to avoid divide by zero errors at some geo-calcs
 
 # what are the interesting fields in loaded from file panda DataFrame
 PD_DATA_CODE_FIELD = 'CODE'
@@ -41,7 +46,6 @@ DICT_DISTRICT_CENTROID_POINT = 'CENTROID'
 
 MG_DEBUG_INTERNAL_ERROR = \
     "Please debug this internal error"
-
 MG_INFO_COMPUTING_VALID_AREA = \
     "Computing the feasible zone centers region map"
 MG_INFO_PARTITION_DESIGNER_INIT = \

@@ -237,7 +237,8 @@ if __name__ == '__main__':
     NUM_ZONES = [10, 20]
     POPULATION_CARDINALITIES = [20, 50]
 
-    LOG_LEVEL = log.DEBUG
+    LOG_LEVEL = log.INFO
+    # LOG_LEVEL = log.DEBUG
 
     #
     # setup logger

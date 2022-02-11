@@ -76,6 +76,17 @@ class Partition:
 
         pass
 
+    def get_score(self):
+        # return partition score
+        #
+
+        if self.score is not None:
+            score = self.score
+        else:
+            raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
+
+        return score
+
     def restore_partition(self):
         # prepare partition to populate zones list again
 
@@ -190,12 +201,18 @@ class Partition:
         score = 0.
 
         for zone in self.zones:
-            zone_value = zone.get_value()
+            # calculate the connectivity cost of the zone
+            # and the number of unconnected parts
             zone.calc_cost()
+            # get the connectivity cost
             zone_cost = zone.get_cost()
-            zone_score = abs(zone_value - self.mean_value) + self.mean_value * zone_cost
-            # TODO
-            # print("Zone score: ",zone_score, zone_value, self.mean_value)
+            # get the number of unconnected parts
+            zone_unconnected = zone.get_unconnected()
+            # get the zone value (total zone population)
+            zone_value = zone.get_value()
+            # calculate the partial score due to this zone configuration
+            zone_score = abs(zone_value - self.mean_value) \
+                         + self.mean_value * (zone_cost + zone_unconnected)
             # carry zone score
             score += zone_score
 
@@ -207,7 +224,11 @@ class Partition:
         # with probability 'prob'
         # apply a random mutation
 
-        # TODO
+        for i in range(self.num_zones):
+            dice = random.random()
+            if dice < prob:
+                new_p = self._generate_new_valid_point()
+                self.genotype[i] = new_p
 
         pass
 
