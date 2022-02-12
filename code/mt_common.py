@@ -57,9 +57,9 @@ MG_INFO_PARTITION_INIT = \
 MG_INFO_PARTITIONS_RESTORED = \
     "All partition objects have been restored (stats zeroed and zone list deleted)"
 MG_INFO_INITIAL_SCORE = \
-    "The initial best score is {:.2f}"
+    "The initial best score is {:,.2f}"
 MG_INFO_LAST_SCORE = \
-    "After {} iteration/s, best score is {:.2f}"
+    "After {} iteration/s, best score is {:,.2f}"
 MG_ERROR_DATA = \
     f"'data' must be a DataFrame with '{PD_DATA_CODE_FIELD}' and '{PD_DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \
@@ -67,7 +67,7 @@ MG_ERROR_CONN = \
 MG_ERROR_VALID_AREA_MAP = \
     "'valid_area' must be a geometric object representing the valid zone centers area"
 MG_ERROR_NUM_ZONES = \
-    "'num_zones' must be an integer between 1 and data cardinality"
+    "'num_zones' must be an integer between 2 and data cardinality"
 MG_ERROR_POP_CARD = \
     "'pop_card' must be an even positive integer"
 MG_ERROR_ENTRY_NOT_FOUND = \

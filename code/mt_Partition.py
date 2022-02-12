@@ -14,9 +14,6 @@ Partition class - library
 
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.point import Point
-from shapely.geometry.polygon import Polygon
-from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry import shape
 import logging as log
 import random
 import numpy as np
@@ -87,18 +84,6 @@ class Partition:
 
         return score
 
-    def restore_partition(self):
-        # prepare partition to populate zones list again
-
-        # delete zones list
-        del self.zones
-        self.zones = list()
-
-        # restore score
-        self.score = None
-
-        pass
-
     def generate_genotype(self):
         # generate as many zone centers as num_zones value
         # and add them to the genotype (a list)
@@ -152,15 +137,12 @@ class Partition:
 
         # initially the zone list must be empty
         if len(self.zones) > 0:
-            raise OverflowError(our.MG_DEBUG_INTERNAL_ERROR)
-
-        # how many zones?
-        num_zones = self.num_zones
+            raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
         # populate the zones instances list
         # each one with a genotype center point
         for center in self.genotype:
-            new_zone = Zone(center=center)
+            new_zone = Zone(center=center, logger=self.logger)
             self.zones.append(new_zone)
 
         # assign each district to the nearest zone center
@@ -180,7 +162,7 @@ class Partition:
                 dtype=float)
 
             # search the nearest zone center
-            zone_at = zone_distances.min()
+            zone_at = np.amin(zone_distances)
             nearest_zone_index = \
                 np.where(zone_distances == zone_at)[0][0]
 
@@ -189,8 +171,6 @@ class Partition:
                                       dis_value=dis_value,
                                       zone_distance=zone_at,
                                       dis_geodata=dis_geodata)
-        # a debug line
-        # self.zones[0]._print_zone_dump()
 
         pass
 
@@ -211,12 +191,14 @@ class Partition:
             # get the zone value (total zone population)
             zone_value = zone.get_value()
             # calculate the partial score due to this zone configuration
-            zone_score = abs(zone_value - self.mean_value) \
-                         + self.mean_value * (zone_cost + zone_unconnected)
+            zone_score = abs(zone_value - self.mean_value) + self.mean_value * (zone_cost + zone_unconnected)
             # carry zone score
             score += zone_score
 
         self.score = score
+
+        # a debug line
+        # self.zones[0]._log_zone_dump()
 
         pass
 
@@ -227,7 +209,9 @@ class Partition:
         for i in range(self.num_zones):
             dice = random.random()
             if dice < prob:
+                # create a new valid zone center
                 new_p = self._generate_new_valid_point()
+                # replace
                 self.genotype[i] = new_p
 
         pass

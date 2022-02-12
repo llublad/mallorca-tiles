@@ -12,14 +12,8 @@ Zone class - library
 # system libraries
 #
 
-import pandas as pd
-import geopandas as gpd
-from shapely.geometry.base import BaseGeometry
-from shapely.geometry.polygon import Polygon
-from shapely.geometry.multipolygon import MultiPolygon
 from shapely.geometry.point import Point
 import logging as log
-import random
 
 #
 # ours libraries
@@ -46,7 +40,7 @@ class Zone:
     and all the methods to deal with
     """
 
-    def __init__(self, center: Point):
+    def __init__(self, center: Point, logger: log.Logger):
         # create a zone instance
         #
 
@@ -56,6 +50,7 @@ class Zone:
 
         # save parameters
         self._center = center
+        self.logger = logger
 
         # zone is composed by district entries
         # we save them into this dictionary
@@ -181,7 +176,7 @@ class Zone:
             # assign maximum mean_cost value to penalize 1-district zones
             # or zones with all its distritcs unconnected
             mean_cost = 1.
- 
+
         self._conn_cost = mean_cost
 
         pass
@@ -195,13 +190,13 @@ class Zone:
 
         pass
 
-    def _print_zone_dump(self):
+    def _log_zone_dump(self):
         # for debugging purposes,
-        # print a zone dump
+        # log a zone dump
 
-        print("Center:           ", self._center)
-        print("Distritcs list:   ", self._districts)
-        print("Total zone value: ", self._zone_value)
-        print("Connectivity cost:", self._conn_cost)
+        self.logger.debug("Center:            {}".format(self._center))
+        self.logger.debug("Distritcs list:    {}".format(self._districts))
+        self.logger.debug("Total zone value:  {}".format(self._zone_value))
+        self.logger.debug("Connectivity cost: {}".format(self._conn_cost))
 
         pass

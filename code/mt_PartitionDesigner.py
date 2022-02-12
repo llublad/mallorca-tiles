@@ -16,13 +16,12 @@ using genetic algorithms
 #
 # system libraries
 #
-import random
 
 from shapely.geometry.base import BaseGeometry
-from shapely.geometry.point import Point
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
 import logging as log
+import random
 
 #
 # ours libraries
@@ -144,7 +143,7 @@ def check_num_zones(num_zones: int, data: list) -> bool:
         raise TypeError(our.MG_ERROR_NUM_ZONES)
 
     # not more zones than the available number of districts is possible
-    is_correct = (num_zones >= 1) and (num_zones <= len(data))
+    is_correct = (num_zones >= 2) and (num_zones <= len(data))
 
     if not is_correct:
         raise ValueError(our.MG_ERROR_NUM_ZONES)
@@ -251,7 +250,7 @@ class PartitionDesigner:
             num_districts = len(data)
             self.num_districts = num_districts
 
-            self._calc_total_value()
+            self.__calc_total_value()
 
             self.logger.info(
                 our.MG_INFO_PARTITION_DESIGNER_INIT.format(
@@ -289,7 +288,7 @@ class PartitionDesigner:
 
         pass
 
-    def _calc_total_value(self):
+    def __calc_total_value(self):
         # calculate the sum of the districts value
         # this value is expected to be total population
         # of the study region
@@ -324,10 +323,10 @@ class PartitionDesigner:
         # for each district,
         # find the closest zone center
         # and assign the district to the zone string
-        self._compose_partitions()
+        self._compose_parents()
 
         # then evaluate the fitness of each string
-        self._evaluate_partitions()
+        self._evaluate_parents()
 
         # which is the best partition?
         self._select_best_partition()
@@ -335,7 +334,7 @@ class PartitionDesigner:
         # update our score with the best one
         self._update_our_score()
 
-        self.logger.info(our.MG_INFO_INITIAL_SCORE.format(self.last_best_score))
+        self.logger.info(our.MG_INFO_INITIAL_SCORE.format(self.last_best_score).replace(',', ' '))
 
         while it < our.GA_MAX_ITERATIONS and \
                 it_ni < our.GA_NOIMPROV_ITERATIONS:
@@ -344,20 +343,23 @@ class PartitionDesigner:
             self._generate_parental_couples()
 
             # apply crossover operator
-            self._apply_crossover_operator()
+            # over parents couples
+            # with GA_CROSSOVER_PROB probability
+            self._apply_crossover_operator(prob=our.GA_CROSSOVER_PROB)
 
-            # apply mutation operator
-            self._apply_mutation_operator()
+            # apply mutation operator over children
+            # with GA_MUTATION_PROB probability
+            self._apply_mutation_offspring(prob=our.GA_MUTATION_PROB)
 
-            # reset partitions, because crossover and mutation
-            # operators have created new zone centers lists (the genotype)
-            self._restore_partitions()
-
-            # compose zone strings
-            self._compose_partitions()
+            # compose children zone strings
+            self._compose_offspring()
 
             # evaluate the fitness
-            self._evaluate_partitions()
+            #
+            # the parents
+            # self._evaluate_parents()
+            # and also the children
+            self._evaluate_offspring()
 
             # select survivors
             self._select_next_generation(hold=our.GA_NEXT_GENERATION_HOLD)
@@ -379,11 +381,11 @@ class PartitionDesigner:
 
             # say something about our progress
             if it % it_module == 0:
-                self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
+                self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score).replace(',', ' '))
 
         # also log the last best score if not logged previously
         if it % it_module != 0:
-            self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
+            self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score).replace(',', ' '))
 
         pass
 
@@ -391,7 +393,7 @@ class PartitionDesigner:
         # populate (empty) list of genotypes
         #
         if len(self.partition) > 0:
-            raise OverflowError(our.MG_DEBUG_INTERNAL_ERROR)
+            raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
         # will generate pop_card Partition objects
         for i in range(self.pop_card):
@@ -404,15 +406,45 @@ class PartitionDesigner:
             new_part.generate_genotype()
 
             # and finally add to our collection
-            self._append_partition(part=new_part)
+            self.partition.append(new_part)
 
         pass
 
-    def _append_partition(self, part: Partition):
-        # append Partition instance to
-        # partitions list
+    def _compose_parents(self):
+        # compose parents partitions
+        # assigning the distrits to the nearest
+        # zone centroid point
 
-        self.partition.append(part)
+        for part in self.partition:
+            part.compose_partition()
+
+        pass
+
+    def _compose_offspring(self):
+        # compose children partitions
+        # assigning the distrits to the nearest
+        # zone centroid point
+
+        for part in self.offspring:
+            part.compose_partition()
+
+        pass
+
+    def _evaluate_parents(self):
+        # calculate fitness function value
+        # for each parent
+
+        for part in self.partition:
+            part.evaluate()
+
+        pass
+
+    def _evaluate_offspring(self):
+        # calculate fitness function value
+        # for each children
+
+        for part in self.offspring:
+            part.evaluate()
 
         pass
 
@@ -427,7 +459,7 @@ class PartitionDesigner:
 
         # select the best partition instance
         self.best_partition = func_select_best_value(
-            self.partition, key=lambda part: part.score)
+            self.partition, key=lambda part: part.get_score())
 
         pass
 
@@ -439,7 +471,7 @@ class PartitionDesigner:
         if self.last_best_score is not None:
             self.best_score_history.append(self.last_best_score)
 
-        self.last_best_score = self.best_partition.score
+        self.last_best_score = self.best_partition.get_score()
 
         pass
 
@@ -459,47 +491,17 @@ class PartitionDesigner:
 
         return is_new_score_better
 
-    def _restore_partitions(self):
-        # reset partition zones and stats
-
-        for part in self.partition:
-            part.restore_partition()
-
-        self.logger.debug(
-            our.MG_INFO_PARTITIONS_RESTORED)
-
-        pass
-
-    def _compose_partitions(self):
-        # compose partition
-        # assigning the distrits to the nearest
-        # zone centroid point
-
-        for part in self.partition:
-            part.compose_partition()
-
-        pass
-
-    def _evaluate_partitions(self):
-        # calculate fitness function value
-        # for each partition
-
-        for part in self.partition:
-            part.evaluate()
-
-        pass
-
-    def _tournament_selection(self, n_adversaries: int):
+    def __tournament_selection(self, n_adversaries: int):
         # return the tournament winner
         #
 
         # construct the candidates list
-        candidates = self.partition
+        candidates = list(set(self.partition) - set(self.daddy) - set(self.mummy))
 
         # select at most n_adversaries (with reemplacement)
         adversaries = random.choices(candidates, k=n_adversaries)
 
-        best: Partition = None
+        best = None
 
         for part in adversaries:
             if best is None or get_best_value_index([best.get_score(), part.get_score()]) == 1:
@@ -512,51 +514,113 @@ class PartitionDesigner:
         # by tournament
 
         # mummy and daddy lists must be empty
-        if len(self.daddy) > 0 or len(self.mummy) > 0:
+        if type(self.daddy) != list or type(self.mummy) != list or \
+                len(self.daddy) > 0 or len(self.mummy) > 0:
             raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
-        for i in range(self.pop_card):
-            daddy = self._tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
+        n_couples = self.pop_card // 2
+
+        for i in range(n_couples):
+            daddy = self.__tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
             self.daddy.append(daddy)
-            mummy = self._tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
+            mummy = self.__tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
             self.mummy.append(mummy)
 
         pass
 
-    def _apply_crossover_operator(self):
+    def __compute_crossover(self, dad: Partition, mum: Partition) -> [Partition, Partition]:
+        # compute crossover over dad and mum
+        # and generate two sons with information from dad and mum
+
+        # how many zones are coded into dad genotype?
+        num_zones = dad.num_zones
+
+        # initially sons have no DNA (empty genotype)
+        son1 = Partition(data=self.data, mean_value=self.mean_value, geodata=self.geodata,
+                         valid_area=self.valid_area, num_zones=self.num_zones,
+                         logger=self.logger)
+        son2 = Partition(data=self.data, mean_value=self.mean_value, geodata=self.geodata,
+                         valid_area=self.valid_area, num_zones=self.num_zones,
+                         logger=self.logger)
+
+        # how many zone genotypes will remain on dad?
+        # at least 1 but no more than the total minus 1
+        zones_to_hold = random.randint(a=1, b=num_zones - 1)
+
+        son1_genotype = dad.genotype[:zones_to_hold] + mum.genotype[zones_to_hold:]
+        son2_genotype = mum.genotype[:zones_to_hold] + dad.genotype[zones_to_hold:]
+
+        son1.genotype = son1_genotype
+        son2.genotype = son2_genotype
+
+        return son1, son2
+
+    def _apply_crossover_operator(self, prob: float):
         # apply crossover operator
         # with GA_CROSSOVER_PROB probability value
 
-        # TODO
+        if type(self.offspring) != list or len(self.offspring) > 0:
+            raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
-        self.offspring = self.partition
+        for daddy, mummy in zip(self.daddy, self.mummy):
+            dice = random.random()
+            if dice < prob:
+                [son1, son2] = self.__compute_crossover(dad=daddy, mum=mummy)
+                self.offspring.append(son1)
+                self.offspring.append(son2)
+
+        # clean parents lists
+        self.daddy = list()
+        self.mummy = list()
 
         pass
 
-    def _apply_mutation_operator(self):
-        # apply mutation operator
-        # with GA_MUTATION_PROB probability value
+    def _apply_mutation_offspring(self, prob: float):
+        # apply mutation operator to children
+        # with 'prob' probability value
 
-        for part in self.partition:
-            part.mutate(prob=our.GA_MUTATION_PROB)
+        for part in self.offspring:
+            part.mutate(prob=prob)
 
         pass
 
     def _select_next_generation(self, hold: float):
         # apply elitist strategy
-        # to select only the best children partitions
-        # and mantain 'hold' percent of the best fathers
+        # to mantain at least 'hold' per-unit of the best parents
+        # and select only the best children partitions until
+        # population cardinality is reached
 
-        # TODO
-
-        # how many partitions must maintain?
-        pop_card = self.pop_card
+        # sorting order?
+        # the more, the better ?
+        reverse_sorting = get_best_value_index([0, 1]) == 1
 
         # obtain an ordered partition list by partition score
-        new_partition_list = sorted(self.partition, key=lambda part: part.score)
+        parents_list = sorted(self.partition, key=lambda part: part.score,
+                              reverse=reverse_sorting)
 
-        # and save only the first 'pop_card' ones
-        self.partition = new_partition_list[:pop_card]
+        # obtain an ordered childs list by score
+        child_list = sorted(self.offspring, key=lambda part: part.score,
+                            reverse=reverse_sorting)
+
+        # how many partitions must survive?
+        n_population = self.pop_card
+
+        # how many of them must be childs?
+        n_childs = int((1 - hold) * n_population)
+
+        # due to crossover probability
+        # it can happen to have an insuficient offspring cardinality,
+        # so we must assure a constant population
+        n_childs = min(n_childs, len(self.offspring))
+
+        # how many of them must be parents?
+        n_parents = n_population - n_childs
+
+        # and save the new list formed by each one top partitions
+        self.partition = parents_list[:n_parents] + child_list[:n_childs]
+
+        # also delete the offspring
+        self.offspring = list()
 
         pass
 
