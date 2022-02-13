@@ -17,6 +17,8 @@ using genetic algorithms
 # system libraries
 #
 
+import geopandas as gpd
+import matplotlib.pyplot as plt
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
@@ -61,6 +63,7 @@ def get_best_value_index(vector: list):
 def check_data(data: list) -> bool:
     # sanity checks for data list
     #
+
     if not type(data) is list:
         raise TypeError(our.MG_ERROR_DATA)
 
@@ -83,11 +86,14 @@ def check_data(data: list) -> bool:
     return is_correct
 
 
-def check_geodata(geodata: dict, data: list) -> bool:
+def check_geodata(geodata: dict, gpd_dis: gpd.GeoDataFrame, data: list) -> bool:
     # sanity checks for connectivity dictionary
     #
-    if not type(geodata) is dict:
+
+    if type(geodata) is not dict:
         raise TypeError(our.MG_ERROR_CONN)
+    if type(gpd_dis) is not gpd.GeoDataFrame:
+        raise TypeError(our.MG_ERROR_DIS)
 
     is_correct = True
 
@@ -124,6 +130,7 @@ def check_geodata(geodata: dict, data: list) -> bool:
 def check_valid_area_map(valid: BaseGeometry) -> bool:
     # sanity checks for valid area map
     #
+
     if not type(valid) in [BaseGeometry, Polygon, MultiPolygon]:
         raise TypeError(our.MG_ERROR_VALID_AREA_MAP)
 
@@ -139,6 +146,7 @@ def check_valid_area_map(valid: BaseGeometry) -> bool:
 def check_num_zones(num_zones: int, data: list) -> bool:
     # check if num_zones is between 1 and data cardinality
     #
+
     if not (type(num_zones) is int and type(data) is list):
         raise TypeError(our.MG_ERROR_NUM_ZONES)
 
@@ -153,6 +161,8 @@ def check_num_zones(num_zones: int, data: list) -> bool:
 
 def check_pop_card(pop_card: int) -> bool:
     # check if pop_card is even
+    #
+
     if not type(pop_card) is int:
         raise TypeError(our.MG_ERROR_POP_CARD)
 
@@ -161,6 +171,18 @@ def check_pop_card(pop_card: int) -> bool:
 
     if not is_correct:
         raise ValueError(our.MG_ERROR_POP_CARD)
+
+    return is_correct
+
+
+def check_gpd_boundary(gpd_bound: gpd.GeoDataFrame):
+    # basic checkings for GeoDataframe
+    # of the map boundary
+
+    if not type(gpd_bound) is gpd.GeoDataFrame:
+        raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
+
+    is_correct = len(gpd_bound) == 1
 
     return is_correct
 
@@ -204,6 +226,8 @@ class PartitionDesigner:
         Each zone will contain at least one distritc
     :param pop_card: an integer with the (initial) population cardinality
     :param logger: a Logger object
+    :param gpd_bound: a GeoDataFrame containing the map boundary
+    :param gpd_dis: a GeoDataFrame containig the district geo-entities
 
     Example for geodata dict:
     ----------------------
@@ -228,14 +252,16 @@ class PartitionDesigner:
     """
 
     def __init__(self, data: list, geodata: dict, valid_area: BaseGeometry,
-                 num_zones: int, pop_card: int, logger: log.Logger):
+                 num_zones: int, pop_card: int, logger: log.Logger,
+                 gpd_bound: gpd.GeoDataFrame, gpd_dis: gpd.GeoDataFrame):
         # create object instance, if params syntax are correct
         all_correct = \
-            check_data(data) and \
-            check_geodata(geodata, data) and \
-            check_valid_area_map(valid_area) and \
-            check_num_zones(num_zones, data) and \
-            check_pop_card(pop_card)
+            check_data(data=data) and \
+            check_geodata(geodata=geodata, gpd_dis=gpd_dis, data=data) and \
+            check_valid_area_map(valid=valid_area) and \
+            check_num_zones(num_zones=num_zones, data=data) and \
+            check_pop_card(pop_card=pop_card) and \
+            check_gpd_boundary(gpd_bound=gpd_bound)
 
         if all_correct:
 
@@ -246,6 +272,10 @@ class PartitionDesigner:
             self.valid_area = valid_area
             self.num_zones = num_zones
             self.pop_card = pop_card
+
+            # also, the GeoPandas to be able to plot maps
+            self.gpd_bound = gpd_bound
+            self.gpd_dis = gpd_dis
 
             num_districts = len(data)
             self.num_districts = num_districts
@@ -441,7 +471,7 @@ class PartitionDesigner:
 
     def _evaluate_offspring(self):
         # calculate fitness function value
-        # for each children
+        # for each child
 
         for part in self.offspring:
             part.evaluate()
@@ -624,12 +654,16 @@ class PartitionDesigner:
 
         pass
 
-    def save_map(self, output_path):
-        # save a plot of the result at disk
+    def save_best_map(self, output_file_name: str):
+        # save a plot of the best result at disk
         #
 
-        if type(self.best_partition) == Partition:
-            self.best_partition.plot()
-            self.best_partition.savefig(output_path)
+        # if type(self.best_partition) == Partition:
+        #     self.best_partition.get_score()
+
+        self.gpd_bound.plot()
+        self.gpd_dis.plot()
+        plt.savefig(output_file_name)
+        plt.close()
 
         pass

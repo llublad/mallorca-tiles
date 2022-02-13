@@ -17,6 +17,12 @@ using genetic algorithms
 # some constants
 #
 
+# solutions file name
+FILE_NAME_SEP = '-'
+FILE_MAP_PREFIX = 'MT'
+FILE_MAP_SUFFIX = 'MAP'
+FILE_MAP_EXT = '.png'
+
 # Genetic Algorithm hiperparameters
 GA_MAX_ITERATIONS = 100
 GA_NOIMPROV_ITERATIONS = 20
@@ -31,6 +37,10 @@ EPS_DIV0 = 1e-6  # A very small number to avoid divide by zero errors at some ge
 # what are the interesting fields in loaded from file panda DataFrame
 PD_DATA_CODE_FIELD = 'CODE'
 PD_DATA_VALUE_FIELD = 'VALUE'
+
+# the name of the GeoDataFrame field that will use to locate
+# the geometry corresponding to field PD_DATA_CODE_FIELD value
+GPD_DATA_CODE_FIELD = 'CODE'
 
 # what are containig the columns in the list of data
 LIST_DATA_CODE_COL = 0
@@ -57,13 +67,16 @@ MG_INFO_PARTITION_INIT = \
 MG_INFO_PARTITIONS_RESTORED = \
     "All partition objects have been restored (stats zeroed and zone list deleted)"
 MG_INFO_INITIAL_SCORE = \
-    "The initial best score is {:,.2f}"
+    "The initial best score is {:,.0f}"
 MG_INFO_LAST_SCORE = \
-    "After {} iteration/s, best score is {:,.2f}"
+    "After {} iterations, best score is {:,.0f}"
 MG_ERROR_DATA = \
     f"'data' must be a DataFrame with '{PD_DATA_CODE_FIELD}' and '{PD_DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \
     f"'geodata' must be a dictionary with a key entry for each 'data' '{PD_DATA_CODE_FIELD}' value"
+MG_ERROR_DIS = \
+    f"'gpd_dis' must be a GeoDataFrame with a field called {GPD_DATA_CODE_FIELD} " \
+    f"and containing an entry for each 'data' '{PD_DATA_CODE_FIELD}' value"
 MG_ERROR_VALID_AREA_MAP = \
     "'valid_area' must be a geometric object representing the valid zone centers area"
 MG_ERROR_NUM_ZONES = \

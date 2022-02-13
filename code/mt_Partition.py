@@ -11,7 +11,7 @@ Partition class - library
 #
 # system libraries
 #
-
+import matplotlib.pyplot as plt
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.point import Point
 import logging as log
@@ -136,7 +136,7 @@ class Partition:
         # to this zone string
 
         # initially the zone list must be empty
-        if len(self.zones) > 0:
+        if type(self.zones) != list or len(self.zones) > 0:
             raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
         # populate the zones instances list
@@ -213,17 +213,5 @@ class Partition:
                 new_p = self._generate_new_valid_point()
                 # replace
                 self.genotype[i] = new_p
-
-        pass
-
-    def plot(self):
-
-        # TODO
-
-        pass
-
-    def savefig(self, path: str):
-
-        # TODO
 
         pass

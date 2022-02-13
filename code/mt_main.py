@@ -22,6 +22,7 @@ import sys
 import pandas as pd
 import geopandas as gpd
 import logging as log
+from datetime import datetime
 
 #
 # ours libraries and classes
@@ -214,9 +215,47 @@ def prepare_data(bound_path: str,
     return gpd_bound, gpd_dis, valid_area, dat_list, conn_dict
 
 
+def get_file_name(prefix: str, suffix: str, sep: str, ext: str,
+                  dt: datetime, num_zones: int, pop_card: int):
+    # generate and return a valid file name
+    #
+
+    if type(prefix) != str or type(suffix) != str or \
+            type(sep) != str or len(sep) == 0 or \
+            type(ext) != str or type(dt) != datetime or \
+            type(num_zones) != int or type(pop_card) != int:
+        raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
+
+    elements = list()
+
+    if len(prefix) > 0:
+        elements.append(prefix)
+        elements.append(sep)
+
+    elements.append(dt.strftime("%Y%m%d_%H%M%S").replace('_', sep))
+    elements.append(sep)
+
+    elements.append(str(num_zones))
+    elements.append(sep)
+
+    elements.append(str(pop_card))
+
+    if len(suffix) > 0:
+        elements.append(sep)
+        elements.append(suffix)
+
+    if len(ext) > 0:
+        elements.append(ext)
+
+    f_name = ''.join([el for el in elements])
+
+    return f_name
+
+
 #
 # main program
 #
+
 
 if __name__ == '__main__':
     #
@@ -234,8 +273,8 @@ if __name__ == '__main__':
 
     OUTPUT_REL_PATH = '../outputs'
 
-    NUM_ZONES = [10, 20]
-    POPULATION_CARDINALITIES = [20, 50]
+    NUM_ZONES = [10]  # [10, 20]
+    POPULATION_CARDINALITIES = [20]  # [20, 50]
 
     LOG_LEVEL = log.INFO
     # LOG_LEVEL = log.DEBUG
@@ -283,9 +322,20 @@ if __name__ == '__main__':
                 data=dat_list, geodata=geodata_dict,
                 valid_area=valid_area,
                 num_zones=nz, pop_card=pc,
-                logger=logger)
+                logger=logger,
+                gpd_bound=gpd_bound, gpd_dis=gpd_dis)
             solution.fit()
-            solution.save_map(output_path=outputs_abs_path)
+
+            tstamp = datetime.now()
+            map_file_name = get_file_name(
+                prefix=our.FILE_MAP_PREFIX, suffix=our.FILE_MAP_SUFFIX, sep=our.FILE_NAME_SEP,
+                ext=our.FILE_MAP_EXT, dt=tstamp, num_zones=nz, pop_card=pc)
+
+            map_file_name_path = os.path.normpath(outputs_abs_path + '/' + map_file_name)
+
+            # save final best solution map
+            solution.save_best_map(output_file_name=map_file_name_path)
+
             del solution
 
     # say goodbye
