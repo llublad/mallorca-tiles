@@ -11,7 +11,6 @@ Partition class - library
 #
 # system libraries
 #
-import matplotlib.pyplot as plt
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.point import Point
 import logging as log
@@ -83,6 +82,41 @@ class Partition:
             raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
         return score
+
+    def get_centers(self):
+        # return the genotype: zone centers Point(x, y) list
+        #
+
+        return self.genotype
+
+    def get_zones(self):
+        # return the zones list
+        # each zone object has a district's dictionary with its districts info
+
+        return self.zones
+
+    def get_district_zone_id_list(self):
+        # return a list with a unique integer for each defined zone
+        # at district's positions
+
+        # reserve num_districts integer positions, initialized to -1
+        district_zone_id = np.ones(self.num_districts, dtype=int) * (-1)
+
+        district_code_list = [dis[our.LIST_DATA_CODE_COL] for dis in self.data]
+
+        # for each conformed zone ...
+        for i, zon in enumerate(self.zones):
+            # get its districts list
+            zone_district_code_list = zon.get_districts_codes()
+            for dis_code in zone_district_code_list:
+                # search each code position
+                pos = district_code_list.index(dis_code)
+                district_zone_id[pos] = i
+
+        if -1 in district_zone_id:
+            raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
+
+        return list(district_zone_id)
 
     def generate_genotype(self):
         # generate as many zone centers as num_zones value

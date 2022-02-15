@@ -50,7 +50,7 @@ class Zone:
 
         # save parameters
         self._center = center
-        self.logger = logger
+        self._logger = logger
 
         # zone is composed by district entries
         # we save them into this dictionary
@@ -110,6 +110,14 @@ class Zone:
             raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
         return unconnected
+
+    def get_districts_codes(self) -> list:
+        # return a list of the codes of the distritcs at this zone
+        #
+
+        districts = self._districts.keys()
+
+        return list(districts)
 
     def add_district(self, dis_code: str, dis_value: int,
                      zone_distance: float, dis_geodata: dict):
@@ -194,9 +202,9 @@ class Zone:
         # for debugging purposes,
         # log a zone dump
 
-        self.logger.debug("Center:            {}".format(self._center))
-        self.logger.debug("Distritcs list:    {}".format(self._districts))
-        self.logger.debug("Total zone value:  {}".format(self._zone_value))
-        self.logger.debug("Connectivity cost: {}".format(self._conn_cost))
+        self._logger.debug("Center:            {}".format(self._center))
+        self._logger.debug("Distritcs list:    {}".format(self._districts))
+        self._logger.debug("Total zone value:  {}".format(self._zone_value))
+        self._logger.debug("Connectivity cost: {}".format(self._conn_cost))
 
         pass

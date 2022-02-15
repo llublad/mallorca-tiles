@@ -19,6 +19,7 @@ using genetic algorithms
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
@@ -658,11 +659,28 @@ class PartitionDesigner:
         # save a plot of the best result at disk
         #
 
-        # if type(self.best_partition) == Partition:
-        #     self.best_partition.get_score()
+        if type(self.best_partition) != Partition or \
+                len(self.best_partition.get_zones()) == 0:
+            raise TypeError(our.MG_DEBUG_INTERNAL_ERROR)
 
-        self.gpd_bound.plot()
-        self.gpd_dis.plot()
+        # get the zones of the best partition
+        district_zone_id_list = self.best_partition.get_district_zone_id_list()
+
+        gdf = self.gpd_dis[[our.GPD_DATA_CODE_FIELD, our.GPD_GEOMETRY_FIELD]]
+        # add zone's ids column to be able to color it
+        gdf['Zone'] = district_zone_id_list
+
+        # plot map boundary
+        #self.gpd_bound.plot()
+
+        # compute color map
+        num_colors = len(self.best_partition.get_zones())
+        colors_vector = [(0.6, 0.1, 0.1), (0.1, 0.8, 0.1), (0.1, 0.1, 0.8)]  # R -> G -> B
+        cmap_name = 'my_part_colors'
+        cmap = colors.LinearSegmentedColormap.from_list(cmap_name, colors_vector, N=num_colors)
+        # plot each zone using diferent colors
+        gdf.plot(column='Zone', cmap=cmap)
+
         plt.savefig(output_file_name)
         plt.close()
 

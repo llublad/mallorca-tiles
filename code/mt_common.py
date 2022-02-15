@@ -24,10 +24,10 @@ FILE_MAP_SUFFIX = 'MAP'
 FILE_MAP_EXT = '.png'
 
 # Genetic Algorithm hiperparameters
-GA_MAX_ITERATIONS = 100
-GA_NOIMPROV_ITERATIONS = 20
+GA_MAX_ITERATIONS = 1000
+GA_NOIMPROV_ITERATIONS = 200
 GA_CROSSOVER_PROB = 0.95
-GA_MUTATION_PROB = 0.01
+GA_MUTATION_PROB = 0.001
 GA_TOURNAMENT_ADVERSARIES = 4
 GA_NEXT_GENERATION_HOLD = 0.20  # mantain this percentage of fathers between generations
 
@@ -41,6 +41,7 @@ PD_DATA_VALUE_FIELD = 'VALUE'
 # the name of the GeoDataFrame field that will use to locate
 # the geometry corresponding to field PD_DATA_CODE_FIELD value
 GPD_DATA_CODE_FIELD = 'CODE'
+GPD_GEOMETRY_FIELD = 'geometry'
 
 # what are containig the columns in the list of data
 LIST_DATA_CODE_COL = 0
@@ -69,7 +70,7 @@ MG_INFO_PARTITIONS_RESTORED = \
 MG_INFO_INITIAL_SCORE = \
     "The initial best score is {:,.0f}"
 MG_INFO_LAST_SCORE = \
-    "After {} iterations, best score is {:,.0f}"
+    "After {} iterations best score is {:,.0f}"
 MG_ERROR_DATA = \
     f"'data' must be a DataFrame with '{PD_DATA_CODE_FIELD}' and '{PD_DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \
