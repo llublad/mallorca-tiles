@@ -20,6 +20,7 @@ using genetic algorithms
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import numpy as np
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
@@ -350,6 +351,8 @@ class PartitionDesigner:
         it_ni = 0
         # log frequency about progress info
         it_module = max(1, our.GA_MAX_ITERATIONS // 10)
+        # last score reference value
+        reference_score: float
 
         # for each district,
         # find the closest zone center
@@ -364,6 +367,7 @@ class PartitionDesigner:
 
         # update our score with the best one
         self._update_our_score()
+        reference_score = self.last_best_score
 
         self.logger.info(our.MG_INFO_INITIAL_SCORE.format(self.last_best_score).replace(',', ' '))
 
@@ -411,8 +415,10 @@ class PartitionDesigner:
             it += 1
 
             # say something about our progress
-            if it % it_module == 0:
+            if it % it_module == 0 or \
+                    reference_score - self.last_best_score > our.GA_LOG_PC_SCORE_IMPROV * reference_score:
                 self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score).replace(',', ' '))
+                reference_score = self.last_best_score
 
         # also log the last best score if not logged previously
         if it % it_module != 0:
@@ -663,6 +669,12 @@ class PartitionDesigner:
                 len(self.best_partition.get_zones()) == 0:
             raise TypeError(our.MG_DEBUG_INTERNAL_ERROR)
 
+        # figsize
+        plt.rcParams['figure.figsize'] = our.PLOT_FIGSIZE
+
+        # plot map boundary
+        self.gpd_bound.plot()
+
         # get the zones of the best partition
         district_zone_id_list = self.best_partition.get_district_zone_id_list()
 
@@ -670,16 +682,43 @@ class PartitionDesigner:
         # add zone's ids column to be able to color it
         gdf['Zone'] = district_zone_id_list
 
-        # plot map boundary
-        #self.gpd_bound.plot()
-
-        # compute color map
+        # compute palette
         num_colors = len(self.best_partition.get_zones())
-        colors_vector = [(0.6, 0.1, 0.1), (0.1, 0.8, 0.1), (0.1, 0.1, 0.8)]  # R -> G -> B
+        colors_vector = [(0.8, 0.1, 0.1),
+                         (0.1, 0.8, 0.1),
+                         (0.1, 0.1, 0.8),
+                         (0.8, 0.8, 0.1),
+                         (0.1, 0.8, 0.8)]  # (R,G,B)
         cmap_name = 'my_part_colors'
         cmap = colors.LinearSegmentedColormap.from_list(cmap_name, colors_vector, N=num_colors)
+        palette = [cmap(i) for i in np.linspace(0, 1, num_colors)]
+
         # plot each zone using diferent colors
         gdf.plot(column='Zone', cmap=cmap)
+
+        color_column = []
+        [color_column.append(palette[i]) for i in district_zone_id_list]
+        gdf.plot(color=color_column)
+
+        # plot zone centers
+        centers = self.best_partition.get_centers()
+
+        for n, point in enumerate(centers):
+            plt.plot(point.x, point.y,
+                     marker='o', linestyle='', markersize=8, mec='k', alpha=0.8,
+                     label=our.PLOT_ZONE_LEGEND.format(n), color=palette[n])
+
+        # get current axes
+        ax = plt.gca()
+
+        # hide axes and borders
+        plt.axis('off')
+
+        # title
+        plt.title("Proposed solution")
+
+        # legend
+        plt.legend(loc='best', shadow=True, fancybox=True)
 
         plt.savefig(output_file_name)
         plt.close()

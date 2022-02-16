@@ -23,9 +23,14 @@ FILE_MAP_PREFIX = 'MT'
 FILE_MAP_SUFFIX = 'MAP'
 FILE_MAP_EXT = '.png'
 
+# solutions plot
+PLOT_FIGSIZE = [15, 10]  # Plot figure size
+PLOT_ZONE_LEGEND = "Zone {}"
+
 # Genetic Algorithm hiperparameters
-GA_MAX_ITERATIONS = 1000
-GA_NOIMPROV_ITERATIONS = 200
+GA_MAX_ITERATIONS = 10000  # hard iterations limit
+GA_NOIMPROV_ITERATIONS = 200  # iterations to stop after no improvement
+GA_LOG_PC_SCORE_IMPROV = 0.05  # print log about score when it improves at least this
 GA_CROSSOVER_PROB = 0.95
 GA_MUTATION_PROB = 0.001
 GA_TOURNAMENT_ADVERSARIES = 4
