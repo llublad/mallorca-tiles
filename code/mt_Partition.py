@@ -95,7 +95,7 @@ class Partition:
 
         return self.zones
 
-    def get_district_zone_id_list(self):
+    def get_district_code_zone_id_lists(self):
         # return a list with a unique integer for each defined zone
         # at district's positions
 
@@ -116,7 +116,7 @@ class Partition:
         if -1 in district_zone_id:
             raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
-        return list(district_zone_id)
+        return district_code_list, list(district_zone_id)
 
     def generate_genotype(self):
         # generate as many zone centers as num_zones value

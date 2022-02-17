@@ -18,6 +18,7 @@ for every tuple of parameters
 #
 
 import os
+import random
 import sys
 import pandas as pd
 import geopandas as gpd
@@ -262,6 +263,8 @@ if __name__ == '__main__':
     # constants
     #
 
+    SEED = 42
+
     BOUNDARY_REL_PATH = '../maps/products/coast_line_geometry.geojsonl.json'
 
     DISTRICTS_REL_PATH = '../maps/products/districts_geometry.geojsonl.json'
@@ -314,6 +317,9 @@ if __name__ == '__main__':
         prepare_data(bound_path=boundary_abs_path, dis_path=districts_abs_path, dis_index_field=DISTRICTS_INDEX_FIELD,
                      dat_path=data_abs_path, dat_index_field=DATA_INDEX_FIELD, dat_value_field=DATA_VALUE_FIELD,
                      logger=logger)
+
+    # seed to make debug easy
+    random.seed(SEED)
 
     # compute zones for all the tuples {NUM_ZONES x POPULATION_CARDINALITIES}
     for nz in NUM_ZONES:

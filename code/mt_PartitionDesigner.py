@@ -675,12 +675,29 @@ class PartitionDesigner:
         # plot map boundary
         self.gpd_bound.plot()
 
-        # get the zones of the best partition
-        district_zone_id_list = self.best_partition.get_district_zone_id_list()
+        # get the list of district codes
+        # and the list of zones ids
+        # from the best partition
+        [district_code_list, district_zone_id_list] = \
+            self.best_partition.get_district_code_zone_id_lists()
 
+        # rearrange the zone id list in same order than in GeoDataFrame
+        geo_dis_list = list(self.gpd_dis[our.GPD_DATA_CODE_FIELD])
+        zone_id_list = list()
+        for dcode in geo_dis_list:
+            if dcode in district_code_list:
+                new_pos = district_code_list.index(dcode)
+                zone_id_list.append(district_zone_id_list[new_pos])
+            else:
+                # append -1 to avoid plotting superfluous included entities
+                # (will filter them)
+                zone_id_list.append(-1)
+
+        # create a GeoDataFrame with the two columns of interest
         gdf = self.gpd_dis[[our.GPD_DATA_CODE_FIELD, our.GPD_GEOMETRY_FIELD]]
+
         # add zone's ids column to be able to color it
-        gdf['Zone'] = district_zone_id_list
+        gdf ['Zone'] = zone_id_list
 
         # compute palette
         num_colors = len(self.best_partition.get_zones())
@@ -694,11 +711,7 @@ class PartitionDesigner:
         palette = [cmap(i) for i in np.linspace(0, 1, num_colors)]
 
         # plot each zone using diferent colors
-        gdf.plot(column='Zone', cmap=cmap)
-
-        color_column = []
-        [color_column.append(palette[i]) for i in district_zone_id_list]
-        gdf.plot(color=color_column)
+        gdf[gdf['Zone'] != -1].plot(column='Zone', cmap=cmap)
 
         # plot zone centers
         centers = self.best_partition.get_centers()
@@ -718,7 +731,7 @@ class PartitionDesigner:
         plt.title("Proposed solution")
 
         # legend
-        plt.legend(loc='best', shadow=True, fancybox=True)
+        plt.legend(loc='lower right', shadow=True, fancybox=True)
 
         plt.savefig(output_file_name)
         plt.close()
