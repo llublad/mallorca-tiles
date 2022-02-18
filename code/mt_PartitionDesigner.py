@@ -311,7 +311,13 @@ class PartitionDesigner:
             # our list of children
             self.offspring = list()
 
+            # compute colors
+            self.cmap = None
+            self.palette = None
+            self.__compute_cmap()
+
         else:
+
             # this will never be executed,
             # because raise clauses in check_whatever functions...
             # ...but in case would run,
@@ -331,6 +337,21 @@ class PartitionDesigner:
             total_value += district[our.LIST_DATA_VALUE_COL]
 
         self.total_value = total_value
+
+        pass
+
+    def __compute_cmap(self):
+        # compute palette
+        #
+
+        colors_vector = [(0.8, 0.1, 0.1),
+                         (0.1, 0.8, 0.1),
+                         (0.1, 0.1, 0.8),
+                         (0.8, 0.8, 0.1),
+                         (0.1, 0.8, 0.8)]  # (R,G,B)
+        cmap_name = 'my_part_colors'
+        self.cmap = colors.LinearSegmentedColormap.from_list(cmap_name, colors_vector, N=self.num_zones)
+        self.palette = [self.cmap(i) for i in np.linspace(0, 1, self.num_zones)]
 
         pass
 
@@ -661,25 +682,21 @@ class PartitionDesigner:
 
         pass
 
-    def save_best_map(self, output_file_name: str):
-        # save a plot of the best result at disk
-        #
+    def _plot_partition_map(self, partition: Partition):
+        # plot the 'partition' Partition
+        # colored zone map
 
-        if type(self.best_partition) != Partition or \
-                len(self.best_partition.get_zones()) == 0:
-            raise TypeError(our.MG_DEBUG_INTERNAL_ERROR)
-
-        # figsize
-        plt.rcParams['figure.figsize'] = our.PLOT_FIGSIZE
+        # get current axes, where to plot
+        cax = plt.gca()
 
         # plot map boundary
-        self.gpd_bound.plot()
+        self.gpd_bound.plot(ax=cax)
 
         # get the list of district codes
         # and the list of zones ids
-        # from the best partition
+        # from the partition
         [district_code_list, district_zone_id_list] = \
-            self.best_partition.get_district_code_zone_id_lists()
+            partition.get_district_code_zone_id_lists()
 
         # rearrange the zone id list in same order than in GeoDataFrame
         geo_dis_list = list(self.gpd_dis[our.GPD_DATA_CODE_FIELD])
@@ -697,43 +714,105 @@ class PartitionDesigner:
         gdf = self.gpd_dis[[our.GPD_DATA_CODE_FIELD, our.GPD_GEOMETRY_FIELD]]
 
         # add zone's ids column to be able to color it
-        gdf ['Zone'] = zone_id_list
-
-        # compute palette
-        num_colors = len(self.best_partition.get_zones())
-        colors_vector = [(0.8, 0.1, 0.1),
-                         (0.1, 0.8, 0.1),
-                         (0.1, 0.1, 0.8),
-                         (0.8, 0.8, 0.1),
-                         (0.1, 0.8, 0.8)]  # (R,G,B)
-        cmap_name = 'my_part_colors'
-        cmap = colors.LinearSegmentedColormap.from_list(cmap_name, colors_vector, N=num_colors)
-        palette = [cmap(i) for i in np.linspace(0, 1, num_colors)]
+        gdf['Zone'] = zone_id_list
 
         # plot each zone using diferent colors
-        gdf[gdf['Zone'] != -1].plot(column='Zone', cmap=cmap)
+        gdf[gdf['Zone'] != -1].plot(ax=cax, column='Zone', cmap=self.cmap)
 
-        # plot zone centers
-        centers = self.best_partition.get_centers()
+        # plot colored zone centers
+        centers = partition.get_centers()
+        centers_x = [p.x for p in centers]
+        centers_y = [p.y for p in centers]
 
-        for n, point in enumerate(centers):
-            plt.plot(point.x, point.y,
-                     marker='o', linestyle='', markersize=8, mec='k', alpha=0.8,
-                     label=our.PLOT_ZONE_LEGEND.format(n), color=palette[n])
+        cax.scatter(x=centers_x, y=centers_y, c=range(len(centers)),
+                    marker='o', edgecolors='k',
+                    cmap=self.cmap, alpha=0.9)
 
-        # get current axes
-        ax = plt.gca()
+        cax.axis('off')
 
-        # hide axes and borders
-        plt.axis('off')
+        pass
 
-        # title
-        plt.title("Proposed solution")
+    def _plot_partition_distribution(self, partition: Partition):
+        # plot the 'partition' Partition
+        # distribution
 
-        # legend
-        plt.legend(loc='lower right', shadow=True, fancybox=True)
+        # get current axes, where to plot
+        cax = plt.gca()
+
+        # get values to plot
+        zones = partition.get_zones()
+        values = [zon.get_value() for zon in zones]
+
+        # plot bar chart
+        cax.bar(x=range(1, self.num_zones + 1), height=values,
+                color=self.palette)
+
+        cax.set_xticks([i for i in range(1, self.num_zones + 1)])
+
+        pass
+
+    def _plot_best_score_history(self):
+        # plot best score evolution
+        #
+
+        # get current axes, where to plot
+        cax = plt.gca()
+
+        # get values to plot
+        scores = self.best_score_history
+
+        # plot line graphic
+        cax.plot(scores)
+
+        pass
+
+    def save_partition_map(self, partition: Partition, output_file_name: str):
+        # save a plot of the 'partition' Partition at disk
+        #
+
+        if type(partition) != Partition or \
+                len(partition.get_zones()) == 0:
+            raise TypeError(our.MG_DEBUG_INTERNAL_ERROR)
+
+        # prepare figure and axis
+        fig, (ax1, ax2) = \
+            plt.subplots(nrows=2, ncols=2, figsize=our.PLOT_FIGSIZE)
+
+        # plot whole map
+        # at upper left sector
+        plt.sca(ax1[0])
+        self._plot_partition_map(partition=partition)
+        plt.title("Whole map proposed solution")
+
+        # plot zoomed area
+        # at upper right
+        plt.sca(ax1[1])
+        self._plot_partition_map(partition=partition)
+        plt.title("Dense area zoom")
+
+        # plot histogram
+        # at lower left
+        plt.sca(ax2[0])
+        self._plot_partition_distribution(partition=partition)
+        plt.title("Value distribution")
+
+        # plot score history
+        # at lower right
+        plt.sca(ax2[1])
+        self._plot_best_score_history()
+        plt.title("Score evolution")
 
         plt.savefig(output_file_name)
         plt.close()
+
+        pass
+
+    def save_best_map(self, output_file: str):
+        # save the map image of the best partition
+        #
+
+        self.save_partition_map(
+            partition=self.best_partition,
+            output_file_name=output_file)
 
         pass

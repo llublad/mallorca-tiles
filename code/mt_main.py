@@ -188,16 +188,17 @@ def prepare_data(bound_path: str,
                 for row in zip(pd_dat[our.PD_DATA_CODE_FIELD],
                                pd_dat[our.PD_DATA_VALUE_FIELD])]
 
-    # load boundary map
-    logger.info(f"Loading boundary map from {bound_path}")
-    gpd_bound = gpd.read_file(filename=bound_path, encoding='utf-8')
-
     # load districts map
     logger.info(f"Loading district map from {dis_path}")
     gpd_dis = gpd.read_file(filename=dis_path, encoding='utf-8')
     # project it to meters (EPSG:3857)
     # to be able to calculate distances
     gpd_dis = gpd_dis.to_crs(crs="EPSG:3857")
+
+    # load boundary map
+    logger.info(f"Loading boundary map from {bound_path}")
+    # project it to meters (EPSG:3857)
+    gpd_bound = gpd.read_file(filename=bound_path, encoding='utf-8').to_crs(crs="EPSG:3857")
 
     if logger.level == log.DEBUG:
         gpd_bound.plot()
@@ -340,7 +341,7 @@ if __name__ == '__main__':
             map_file_name_path = os.path.normpath(outputs_abs_path + '/' + map_file_name)
 
             # save final best solution map
-            solution.save_best_map(output_file_name=map_file_name_path)
+            solution.save_best_map(output_file=map_file_name_path)
 
             del solution
 

@@ -24,8 +24,7 @@ FILE_MAP_SUFFIX = 'MAP'
 FILE_MAP_EXT = '.png'
 
 # solutions plot
-PLOT_FIGSIZE = [15, 10]  # Plot figure size
-PLOT_ZONE_LEGEND = "Zone {}"
+PLOT_FIGSIZE = (15, 10)  # Plot figure size
 
 # Genetic Algorithm hiperparameters
 GA_MAX_ITERATIONS = 1000  # hard iterations limit
@@ -34,7 +33,7 @@ GA_LOG_PC_SCORE_IMPROV = 0.05  # print log about score when it improves at least
 GA_CROSSOVER_PROB = 0.95
 GA_MUTATION_PROB = 0.01
 GA_TOURNAMENT_ADVERSARIES = 4
-GA_NEXT_GENERATION_HOLD = 0.20  # mantain this percentage of fathers between generations
+GA_NEXT_GENERATION_HOLD = 0.20  # mantain at least this percentage of fathers between generations
 
 # math constants
 EPS_DIV0 = 1e-6  # A very small number to avoid divide by zero errors at some geo-calcs
