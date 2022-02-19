@@ -18,12 +18,10 @@ for every tuple of parameters
 #
 
 import os
-import random
 import sys
 import pandas as pd
 import geopandas as gpd
 import logging as log
-from datetime import datetime
 
 #
 # ours libraries and classes
@@ -81,14 +79,20 @@ def make_my_neighbours_lists(from_geos: gpd.GeoSeries, me: int, ind_vals: list) 
     # calculate relative border areas shared with my neighbours
     #
 
-    # initialize divisor to non-zero value to avoid the (rare) div/0 case error
-    # (i.e. an isolated district)
-    total_common_area = our.EPS_DIV0
+    # initialize common area accumulator
+    total_common_area = 0.
 
     # calculate total border length
     for j in range(len(is_in_touch)):
         if (me != j) and is_in_touch[j]:
             total_common_area += common_border_area[j]
+
+    # if there are no common area,
+    # initialize divisor to non-zero value to avoid
+    # the (rare) div/0 case error
+    # (i.e. an isolated district)
+    if total_common_area == 0.:
+        total_common_area = 1.
 
     # compute ranking list
     for j in range(len(is_in_touch)):
@@ -217,54 +221,14 @@ def prepare_data(bound_path: str,
     return gpd_bound, gpd_dis, valid_area, dat_list, conn_dict
 
 
-def get_file_name(prefix: str, suffix: str, sep: str, ext: str,
-                  dt: datetime, num_zones: int, pop_card: int):
-    # generate and return a valid file name
-    #
-
-    if type(prefix) != str or type(suffix) != str or \
-            type(sep) != str or len(sep) == 0 or \
-            type(ext) != str or type(dt) != datetime or \
-            type(num_zones) != int or type(pop_card) != int:
-        raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
-
-    elements = list()
-
-    if len(prefix) > 0:
-        elements.append(prefix)
-        elements.append(sep)
-
-    elements.append(dt.strftime("%Y%m%d_%H%M%S").replace('_', sep))
-    elements.append(sep)
-
-    elements.append(str(num_zones))
-    elements.append(sep)
-
-    elements.append(str(pop_card))
-
-    if len(suffix) > 0:
-        elements.append(sep)
-        elements.append(suffix)
-
-    if len(ext) > 0:
-        elements.append(ext)
-
-    f_name = ''.join([el for el in elements])
-
-    return f_name
-
-
 #
 # main program
 #
-
 
 if __name__ == '__main__':
     #
     # constants
     #
-
-    SEED = 42
 
     BOUNDARY_REL_PATH = '../maps/products/coast_line_geometry.geojsonl.json'
 
@@ -277,8 +241,8 @@ if __name__ == '__main__':
 
     OUTPUT_REL_PATH = '../outputs'
 
-    NUM_ZONES = [20]  # [10, 20]
-    POPULATION_CARDINALITIES = [20]  # [20, 50]
+    NUM_ZONES = [10]  # [2, 10, 20]
+    POPULATION_CARDINALITIES = [20]  # [10, 20, 50]
 
     LOG_LEVEL = log.INFO
     # LOG_LEVEL = log.DEBUG
@@ -319,30 +283,23 @@ if __name__ == '__main__':
                      dat_path=data_abs_path, dat_index_field=DATA_INDEX_FIELD, dat_value_field=DATA_VALUE_FIELD,
                      logger=logger)
 
-    # seed to make debug easy
-    random.seed(SEED)
-
     # compute zones for all the tuples {NUM_ZONES x POPULATION_CARDINALITIES}
     for nz in NUM_ZONES:
         for pc in POPULATION_CARDINALITIES:
+
             solution = PartitionDesigner(
                 data=dat_list, geodata=geodata_dict,
                 valid_area=valid_area,
                 num_zones=nz, pop_card=pc,
                 logger=logger,
-                gpd_bound=gpd_bound, gpd_dis=gpd_dis)
+                gpd_bound=gpd_bound, gpd_dis=gpd_dis,
+                save_maps_to=outputs_abs_path)
+
+            # compute best partition and
+            # plot each relevant hit
             solution.fit()
 
-            tstamp = datetime.now()
-            map_file_name = get_file_name(
-                prefix=our.FILE_MAP_PREFIX, suffix=our.FILE_MAP_SUFFIX, sep=our.FILE_NAME_SEP,
-                ext=our.FILE_MAP_EXT, dt=tstamp, num_zones=nz, pop_card=pc)
-
-            map_file_name_path = os.path.normpath(outputs_abs_path + '/' + map_file_name)
-
-            # save final best solution map
-            solution.save_best_map(output_file=map_file_name_path)
-
+            # free memory
             del solution
 
     # say goodbye

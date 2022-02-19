@@ -22,21 +22,24 @@ FILE_NAME_SEP = '-'
 FILE_MAP_PREFIX = 'MT'
 FILE_MAP_SUFFIX = 'MAP'
 FILE_MAP_EXT = '.png'
+FILE_DATESTAMP_FMT = '%Y%m%d_%H%M%S'
+FILE_NZ_LIT = 'nz'  # number of zones to obtain
+FILE_PC_LIT = 'pc'  # GA used population cardinality
+FILE_IT_LIT = 'it'  # actual iteration number
 
 # solutions plot
-PLOT_FIGSIZE = (15, 10)  # Plot figure size
+PLOT_FIGSIZE = (20, 15)  # Plot figure size
+PLOT_SCORE_MG = "At iteration: {}\nBest score was: {:.6f}"
+PLOT_WINDOW_ZOOM = [0.1, 0.25, 0.5, 0.65]  # [wmin_x, wmin_y, wmax_x, wmax_y]
 
 # Genetic Algorithm hiperparameters
-GA_MAX_ITERATIONS = 1000  # hard iterations limit
-GA_NOIMPROV_ITERATIONS = 200  # iterations to stop after no improvement
+GA_MAX_ITERATIONS = 100  # hard iterations limit
+GA_NOIMPROV_ITERATIONS = 1000  # iterations to stop after no improvement
 GA_LOG_PC_SCORE_IMPROV = 0.05  # print log about score when it improves at least this
 GA_CROSSOVER_PROB = 0.95
 GA_MUTATION_PROB = 0.01
 GA_TOURNAMENT_ADVERSARIES = 4
 GA_NEXT_GENERATION_HOLD = 0.20  # mantain at least this percentage of fathers between generations
-
-# math constants
-EPS_DIV0 = 1e-6  # A very small number to avoid divide by zero errors at some geo-calcs
 
 # what are the interesting fields in loaded from file panda DataFrame
 PD_DATA_CODE_FIELD = 'CODE'
@@ -72,9 +75,9 @@ MG_INFO_PARTITION_INIT = \
 MG_INFO_PARTITIONS_RESTORED = \
     "All partition objects have been restored (stats zeroed and zone list deleted)"
 MG_INFO_INITIAL_SCORE = \
-    "The initial best score is {:,.0f}"
+    "The initial best score is {:.6f}"
 MG_INFO_LAST_SCORE = \
-    "After {} iterations best score is {:,.0f}"
+    "After {} iterations best score is {:.6f}"
 MG_ERROR_DATA = \
     f"'data' must be a DataFrame with '{PD_DATA_CODE_FIELD}' and '{PD_DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \

@@ -27,7 +27,7 @@ import mt_common as our
 
 class Partition:
     """
-    Object that encapsulates the genotype of a map partition
+    Class that encapsulates the genotype of a map partition
     and all the necessary methods to work with
 
     A partition is a list of zones that covers a region map
@@ -96,13 +96,15 @@ class Partition:
         return self.zones
 
     def get_district_code_zone_id_lists(self):
-        # return a list with a unique integer for each defined zone
-        # at district's positions
+        # return two list:
+        # - a list of district codes
+        # - a list with a unique integer for each defined zone at first district codes list
 
-        # reserve num_districts integer positions, initialized to -1
-        district_zone_id = np.ones(self.num_districts, dtype=int) * (-1)
-
+        # construct district codes list
         district_code_list = [dis[our.LIST_DATA_CODE_COL] for dis in self.data]
+
+        # reserve num_districts integer positions, initialized to -1 value
+        district_zone_id = np.ones(self.num_districts, dtype=int) * (-1)
 
         # for each conformed zone ...
         for i, zon in enumerate(self.zones):
@@ -225,7 +227,8 @@ class Partition:
             # get the zone value (total zone population)
             zone_value = zone.get_value()
             # calculate the partial score due to this zone configuration
-            zone_score = abs(zone_value - self.mean_value) + self.mean_value * (zone_cost + zone_unconnected)
+            # zone_score = abs(zone_value - self.mean_value) + self.mean_value * (zone_cost + zone_unconnected)
+            zone_score = (abs(zone_value / self.mean_value - 1) + zone_cost + zone_unconnected) / self.num_zones
             # carry zone score
             score += zone_score
 
@@ -239,6 +242,7 @@ class Partition:
     def mutate(self, prob: float):
         # with probability 'prob'
         # apply a random mutation
+        # to a genotype
 
         for i in range(self.num_zones):
             dice = random.random()

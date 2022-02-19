@@ -34,7 +34,7 @@ def _intersection(list1: list, list2: list) -> list:
 
 class Zone:
     """
-    Object that encapsulates a zone
+    Class that encapsulates a zone
 
     A zone contains a list of (probably connected) districts
     and all the methods to deal with
@@ -42,7 +42,7 @@ class Zone:
 
     def __init__(self, center: Point, logger: log.Logger):
         # create a zone instance
-        #
+        # centered at 'center' Point
 
         # check center contains a Point
         if type(center) is not Point:
@@ -56,12 +56,12 @@ class Zone:
         # we save them into this dictionary
         self._districts = dict()
 
-        # and this is the counter
+        # and this is the district's counter
         self._n_districts = 0
 
         # also, must save the total zone value
         # (the sum of each district value)
-        self._zone_value = 0
+        self._zone_value = 0  # stores the total population of the zone
 
         # an internal connectivity cost can be computed
         # based on each district NEIGHBOURS_COST_LIST dict entry

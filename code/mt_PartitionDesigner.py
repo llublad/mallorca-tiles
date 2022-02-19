@@ -5,10 +5,10 @@
 # Alumne: Lluís Bernat Ladaria
 
 """
-Zone design - library
-=====================
+Partition Design - library
+==========================
 
-Provides the objects and functions to compute a solution for
+Provides an objects and some functions to compute a solution for
 districts assignation to almost uniform population distribution zones
 using genetic algorithms
 """
@@ -26,11 +26,12 @@ from shapely.geometry.polygon import Polygon
 from shapely.geometry.multipolygon import MultiPolygon
 import logging as log
 import random
+import os
+from datetime import datetime
 
 #
 # ours libraries
 #
-
 
 import mt_common as our
 from mt_Partition import Partition
@@ -146,7 +147,7 @@ def check_valid_area_map(valid: BaseGeometry) -> bool:
 
 
 def check_num_zones(num_zones: int, data: list) -> bool:
-    # check if num_zones is between 1 and data cardinality
+    # check if num_zones value is between 2 and data cardinality
     #
 
     if not (type(num_zones) is int and type(data) is list):
@@ -162,7 +163,7 @@ def check_num_zones(num_zones: int, data: list) -> bool:
 
 
 def check_pop_card(pop_card: int) -> bool:
-    # check if pop_card is even
+    # check if pop_card (GA population cardinality) is even
     #
 
     if not type(pop_card) is int:
@@ -189,6 +190,54 @@ def check_gpd_boundary(gpd_bound: gpd.GeoDataFrame):
     return is_correct
 
 
+def _compute_file_name(prefix: str, suffix: str, sep: str, ext: str,
+                       dt: datetime, num_zones: int, pop_card: int,
+                       iteration: int):
+    # generate and return a valid file name
+    #
+
+    if type(prefix) != str or type(suffix) != str or \
+            type(sep) != str or len(sep) == 0 or \
+            type(ext) != str or type(dt) != datetime or \
+            type(num_zones) != int or type(pop_card) != int or \
+            type(iteration) != int:
+        raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
+
+    elements = list()
+
+    if len(prefix) > 0:
+        elements.append(prefix)
+        elements.append(sep)
+
+    elements.append(dt.strftime(our.FILE_DATESTAMP_FMT).replace('_', sep))
+    elements.append(sep)
+
+    elements.append(our.FILE_NZ_LIT)
+    elements.append(sep)
+    elements.append(str(num_zones))
+    elements.append(sep)
+
+    elements.append(our.FILE_PC_LIT)
+    elements.append(sep)
+    elements.append(str(pop_card))
+    elements.append(sep)
+
+    elements.append(our.FILE_IT_LIT)
+    elements.append(sep)
+    elements.append(str(iteration))
+
+    if len(suffix) > 0:
+        elements.append(sep)
+        elements.append(suffix)
+
+    if len(ext) > 0:
+        elements.append(ext)
+
+    f_name = ''.join([el for el in elements])
+
+    return f_name
+
+
 #
 # Class
 #
@@ -196,7 +245,7 @@ def check_gpd_boundary(gpd_bound: gpd.GeoDataFrame):
 
 class PartitionDesigner:
     """
-    Object that encapsulates all methods and information
+    Class that encapsulates all methods and information
     to compute a solution for the Zone Design problem using
     a Genetic Algorithm described at
 
@@ -230,6 +279,7 @@ class PartitionDesigner:
     :param logger: a Logger object
     :param gpd_bound: a GeoDataFrame containing the map boundary
     :param gpd_dis: a GeoDataFrame containig the district geo-entities
+    :param save_maps_to: path to folder where the maps will be saved
 
     Example for geodata dict:
     ----------------------
@@ -255,7 +305,9 @@ class PartitionDesigner:
 
     def __init__(self, data: list, geodata: dict, valid_area: BaseGeometry,
                  num_zones: int, pop_card: int, logger: log.Logger,
-                 gpd_bound: gpd.GeoDataFrame, gpd_dis: gpd.GeoDataFrame):
+                 gpd_bound: gpd.GeoDataFrame, gpd_dis: gpd.GeoDataFrame,
+                 save_maps_to: str):
+
         # create object instance, if params syntax are correct
         all_correct = \
             check_data(data=data) and \
@@ -278,6 +330,9 @@ class PartitionDesigner:
             # also, the GeoPandas to be able to plot maps
             self.gpd_bound = gpd_bound
             self.gpd_dis = gpd_dis
+
+            # path where to save resulting map/s
+            self.save_maps_to = save_maps_to
 
             num_districts = len(data)
             self.num_districts = num_districts
@@ -312,9 +367,9 @@ class PartitionDesigner:
             self.offspring = list()
 
             # compute colors
-            self.cmap = None
-            self.palette = None
-            self.__compute_cmap()
+            self.cmap = list()
+            self.palette = list()
+            self.__compute_cmap_palette()
 
         else:
 
@@ -323,8 +378,6 @@ class PartitionDesigner:
             # ...but in case would run,
             # we force a generic Exception to be noticed about and debug it
             raise Exception(our.MG_DEBUG_INTERNAL_ERROR)
-
-        pass
 
     def __calc_total_value(self):
         # calculate the sum of the districts value
@@ -340,7 +393,7 @@ class PartitionDesigner:
 
         pass
 
-    def __compute_cmap(self):
+    def __compute_cmap_palette(self):
         # compute palette
         #
 
@@ -360,8 +413,11 @@ class PartitionDesigner:
         # and find the best solution
         #
 
+        # take a timestamp as file name part
+        tstamp = datetime.now()
+
         # make an initial population
-        # creating Partition instances
+        # creating Partition class instances
         self._generate_initial_population()
 
         # iteration counters
@@ -390,13 +446,17 @@ class PartitionDesigner:
         self._update_our_score()
         reference_score = self.last_best_score
 
-        self.logger.info(our.MG_INFO_INITIAL_SCORE.format(self.last_best_score).replace(',', ' '))
+        # say hello
+        self.logger.info(our.MG_INFO_INITIAL_SCORE.format(self.last_best_score))
+        # and save current best solution map
+        self.save_best_map(tstamp=tstamp, iteration=it)
 
         while it < our.GA_MAX_ITERATIONS and \
                 it_ni < our.GA_NOIMPROV_ITERATIONS:
             # select parental couples
-            # by tournament
-            self._generate_parental_couples()
+            # by selecting the winner of the tournament
+            # of GA_TOURNAMENT_ADVERSARIES adversaries
+            self._generate_parental_couples(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
 
             # apply crossover operator
             # over parents couples
@@ -411,10 +471,7 @@ class PartitionDesigner:
             self._compose_offspring()
 
             # evaluate the fitness
-            #
-            # the parents
-            # self._evaluate_parents()
-            # and also the children
+            # of the children
             self._evaluate_offspring()
 
             # select survivors
@@ -438,12 +495,16 @@ class PartitionDesigner:
             # say something about our progress
             if it % it_module == 0 or \
                     reference_score - self.last_best_score > our.GA_LOG_PC_SCORE_IMPROV * reference_score:
-                self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score).replace(',', ' '))
+                self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
                 reference_score = self.last_best_score
+                # save current best solution map
+                self.save_best_map(tstamp=tstamp, iteration=it)
 
         # also log the last best score if not logged previously
         if it % it_module != 0:
-            self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score).replace(',', ' '))
+            self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
+            # save final best solution map
+            self.save_best_map(tstamp=tstamp, iteration=it)
 
         pass
 
@@ -567,21 +628,22 @@ class PartitionDesigner:
 
         return best
 
-    def _generate_parental_couples(self):
+    def _generate_parental_couples(self, n_adversaries: int):
         # generate parental couples
         # by tournament
 
         # mummy and daddy lists must be empty
         if type(self.daddy) != list or type(self.mummy) != list or \
-                len(self.daddy) > 0 or len(self.mummy) > 0:
+                len(self.daddy) > 0 or len(self.mummy) > 0 or \
+                type(n_adversaries) != int:
             raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
         n_couples = self.pop_card // 2
 
         for i in range(n_couples):
-            daddy = self.__tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
+            daddy = self.__tournament_selection(n_adversaries=n_adversaries)
             self.daddy.append(daddy)
-            mummy = self.__tournament_selection(n_adversaries=our.GA_TOURNAMENT_ADVERSARIES)
+            mummy = self.__tournament_selection(n_adversaries=n_adversaries)
             self.mummy.append(mummy)
 
         pass
@@ -615,7 +677,7 @@ class PartitionDesigner:
 
     def _apply_crossover_operator(self, prob: float):
         # apply crossover operator
-        # with GA_CROSSOVER_PROB probability value
+        # with 'prob' (GA_CROSSOVER_PROB) probability value
 
         if type(self.offspring) != list or len(self.offspring) > 0:
             raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
@@ -682,7 +744,7 @@ class PartitionDesigner:
 
         pass
 
-    def _plot_partition_map(self, partition: Partition):
+    def _plot_partition_map(self, partition: Partition, window: list = None):
         # plot the 'partition' Partition
         # colored zone map
 
@@ -691,6 +753,14 @@ class PartitionDesigner:
 
         # plot map boundary
         self.gpd_bound.plot(ax=cax)
+
+        # must zoom the plot?
+        if window is not None:
+            minx, miny, maxx, maxy = self.gpd_bound.total_bounds
+            deltax = maxx - minx
+            deltay = maxy - miny
+            cax.set_xlim(minx + window[0] * deltax, minx + window[2] * deltax)
+            cax.set_ylim(miny + window[1] * deltay, miny + window[3] * deltay)
 
         # get the list of district codes
         # and the list of zones ids
@@ -732,7 +802,7 @@ class PartitionDesigner:
 
         pass
 
-    def _plot_partition_distribution(self, partition: Partition):
+    def _plot_partition_value_per_zone(self, partition: Partition):
         # plot the 'partition' Partition
         # distribution
 
@@ -760,17 +830,35 @@ class PartitionDesigner:
 
         # get values to plot
         scores = self.best_score_history
+        n_scores = len(scores)
 
-        # plot line graphic
-        cax.plot(scores)
+        if n_scores > 0:
+            # compute xticks
+            xticks = [i for i in range(0, n_scores, max(1, n_scores // 10))]
+
+            # plot line graphic
+            cax.plot(scores)
+            cax.set_xticks(xticks)
+
+            # also tell last score
+            cax.text(0.6, 0.9,
+                     our.PLOT_SCORE_MG.format(n_scores, scores[-1]),
+                     horizontalalignment='left', verticalalignment='center',
+                     transform=cax.transAxes)
+
+        else:
+            cax.text(0.5, 0.5, 'no data available',
+                     horizontalalignment='center', verticalalignment='center',
+                     transform=cax.transAxes)
+            cax.axis('off')
 
         pass
 
-    def save_partition_map(self, partition: Partition, output_file_name: str):
-        # save a plot of the 'partition' Partition at disk
+    def plot_partition_map(self, partition: Partition, iteration: int):
+        # plot of the 'partition' Partition
         #
 
-        if type(partition) != Partition or \
+        if type(partition) != Partition or type(iteration) != int or \
                 len(partition.get_zones()) == 0:
             raise TypeError(our.MG_DEBUG_INTERNAL_ERROR)
 
@@ -786,15 +874,18 @@ class PartitionDesigner:
 
         # plot zoomed area
         # at upper right
+        #
+        # zoom it at window
+        window = our.PLOT_WINDOW_ZOOM  # [wmin_x, wmin_y, wmax_x, wmax_y]
         plt.sca(ax1[1])
-        self._plot_partition_map(partition=partition)
+        self._plot_partition_map(partition=partition, window=window)
         plt.title("Dense area zoom")
 
-        # plot histogram
+        # plot value (population) per zone
         # at lower left
         plt.sca(ax2[0])
-        self._plot_partition_distribution(partition=partition)
-        plt.title("Value distribution")
+        self._plot_partition_value_per_zone(partition=partition)
+        plt.title("Value (population) per zone")
 
         # plot score history
         # at lower right
@@ -802,17 +893,29 @@ class PartitionDesigner:
         self._plot_best_score_history()
         plt.title("Score evolution")
 
-        plt.savefig(output_file_name)
+        fig.suptitle(t='Proposed solution map at iteration {}\n'
+                       'using: nz={} pc={} p_cros={} p_mut={}'
+                     .format(iteration, self.num_zones, self.pop_card,
+                             our.GA_CROSSOVER_PROB, our.GA_MUTATION_PROB),
+                     fontsize=16)
+
+        pass
+
+    def save_best_map(self, tstamp: datetime, iteration: int):
+        # plot the map image of the best partition
+        # and then save it to disk
+
+        self.plot_partition_map(partition=self.best_partition, iteration=iteration)
+
+        map_file_name = _compute_file_name(
+            prefix=our.FILE_MAP_PREFIX, suffix=our.FILE_MAP_SUFFIX, sep=our.FILE_NAME_SEP,
+            ext=our.FILE_MAP_EXT, dt=tstamp,
+            num_zones=self.num_zones, pop_card=self.pop_card,
+            iteration=iteration)
+
+        full_output_fname = os.path.normpath(self.save_maps_to + '/' + map_file_name)
+
+        plt.savefig(full_output_fname)
         plt.close()
 
-        pass
-
-    def save_best_map(self, output_file: str):
-        # save the map image of the best partition
-        #
-
-        self.save_partition_map(
-            partition=self.best_partition,
-            output_file_name=output_file)
-
-        pass
+    pass
