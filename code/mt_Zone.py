@@ -196,18 +196,6 @@ class Zone:
 
         pass
 
-    def _compute_unconnected_parts(self):
-        # compute number of unconnected parts the zone has
-        #
-
-        unconnected = 0
-
-        self._unconnected_parts = unconnected
-
-        # TODO
-
-        pass
-
     def _log_zone_dump(self):
         # for debugging purposes,
         # log a zone dump
@@ -216,5 +204,57 @@ class Zone:
         self._logger.debug("Distritcs list:    {}".format(self._districts))
         self._logger.debug("Total zone value:  {}".format(self._zone_value))
         self._logger.debug("Connectivity cost: {}".format(self._conn_cost))
+
+        pass
+
+    def __visit_neighbour(self, districts: list, pos: int):
+
+        # mark this district as visited
+        self.visited_status[pos] = True
+
+        # locate its neighbours
+        dis_entry = self._districts.get(districts[pos])
+        neigbours = dis_entry.get(3).get(our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST)
+
+        neighbours_into_zone = _intersection(neigbours, districts)
+
+        for neig in neighbours_into_zone:
+            neig_pos = districts.index(neig)
+            if not self.visited_status[neig_pos]:
+                self.__visit_neighbour(districts=districts, pos=neig_pos)
+
+        pass
+
+    def _compute_unconnected_parts(self):
+        # compute number of unconnected parts the zone has
+        #
+
+        # counter at zero
+        unconnected = 0
+
+        # get list of own district codes
+        districts = self.get_districts_codes()
+
+        # creata a vector of visited districts status (boolean)
+        self.visited_status = [False] * len(districts)
+
+        # start tour at first district
+        init_pos = 0
+
+        # start tour at first district
+        self.__visit_neighbour(districts=districts, pos=init_pos)
+
+        while False in self.visited_status:
+            # if there are non visited districts, then
+            # increment unconnected counter and make new tour
+            # from unvisited district
+            unconnected += 1
+
+            init_pos = self.visited_status.index(False)
+
+            # start new tour
+            self.__visit_neighbour(districts=districts, pos=init_pos)
+
+        self._unconnected_parts = unconnected
 
         pass
