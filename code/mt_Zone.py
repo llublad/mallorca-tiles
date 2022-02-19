@@ -120,14 +120,21 @@ class Zone:
         return list(districts)
 
     def add_district(self, dis_code: str, dis_value: int,
-                     zone_distance: float, dis_geodata: dict):
-        # add district entry to zone string
-        # and its associated value
+                     center_distance: float, dis_geodata: dict):
+        """
+        Add district entry to zone string and its associated value,
+        distance to zone center and neighbours data
+
+        :param dis_code: code of the district
+        :param dis_value: the value of the district (its population)
+        :param center_distance: distance from district centroid to zone center
+        :param dis_geodata: dictionary with list of neighbour codes and list of connection cost to each neighbour
+        """
 
         entry = {
-            1: dis_value,
-            2: zone_distance,
-            3: dis_geodata
+            1: dis_value,  # the value of the district (its population)
+            2: center_distance,  # distance from district centroid to zone center
+            3: dis_geodata  # dictionary with list of neighbour codes and list of connection cost to each neighbour
         }
 
         self._districts[dis_code] = entry
@@ -190,11 +197,14 @@ class Zone:
         pass
 
     def _compute_unconnected_parts(self):
-        # TODO
+        # compute number of unconnected parts the zone has
+        #
 
         unconnected = 0
 
         self._unconnected_parts = unconnected
+
+        # TODO
 
         pass
 

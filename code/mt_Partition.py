@@ -203,9 +203,7 @@ class Partition:
                 np.where(zone_distances == zone_at)[0][0]
 
             nearest_zone: Zone = self.zones[nearest_zone_index]
-            nearest_zone.add_district(dis_code=dis_code,
-                                      dis_value=dis_value,
-                                      zone_distance=zone_at,
+            nearest_zone.add_district(dis_code=dis_code, dis_value=dis_value, center_distance=zone_at,
                                       dis_geodata=dis_geodata)
 
         pass
