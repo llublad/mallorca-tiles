@@ -224,7 +224,8 @@ def _compute_file_name(prefix: str, suffix: str, sep: str, ext: str,
 
     elements.append(our.FILE_IT_LIT)
     elements.append(sep)
-    elements.append(str(iteration))
+    iteration_digits = len(str(our.GA_MAX_ITERATIONS))
+    elements.append(str(iteration).zfill(iteration_digits))
 
     if len(suffix) > 0:
         elements.append(sep)
@@ -914,6 +915,9 @@ class PartitionDesigner:
             iteration=iteration)
 
         full_output_fname = os.path.normpath(self.save_maps_to + '/' + map_file_name)
+
+        # log file location
+        self.logger.info(our.MG_INFO_SAVING.format(iteration, full_output_fname))
 
         plt.savefig(full_output_fname)
         plt.close()
