@@ -33,11 +33,11 @@ PLOT_SCORE_MG = "At iteration: {}\nBest score was: {:.6f}"
 PLOT_WINDOW_ZOOM = [0.1, 0.25, 0.5, 0.65]  # [wmin_x, wmin_y, wmax_x, wmax_y]
 
 # Genetic Algorithm hiperparameters
-GA_MAX_ITERATIONS = 100  # hard iterations limit
+GA_MAX_ITERATIONS = 1000  # hard iterations limit
 GA_NOIMPROV_ITERATIONS = 1000  # iterations to stop after no improvement
 GA_LOG_PC_SCORE_IMPROV = 0.05  # print log about score when it improves at least this
 GA_CROSSOVER_PROB = 0.95
-GA_MUTATION_PROB = 0.01
+GA_MUTATION_PROB = 0.05
 GA_TOURNAMENT_ADVERSARIES = 4
 GA_NEXT_GENERATION_HOLD = 0.20  # mantain at least this percentage of fathers between generations
 
@@ -78,6 +78,8 @@ MG_INFO_INITIAL_SCORE = \
     "The initial best score is {:.6f}"
 MG_INFO_LAST_SCORE = \
     "After {} iterations best score is {:.6f}"
+MG_INFO_SAVING = \
+    "Saving status map at iteration {} to file {}"
 MG_ERROR_DATA = \
     f"'data' must be a DataFrame with '{PD_DATA_CODE_FIELD}' and '{PD_DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \
