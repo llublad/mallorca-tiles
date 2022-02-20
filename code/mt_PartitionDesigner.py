@@ -400,7 +400,7 @@ class PartitionDesigner:
 
         colors_vector = [(0.8, 0.1, 0.1),
                          (0.1, 0.8, 0.1),
-                         (0.1, 0.1, 0.8),
+                         (0.8, 0.1, 0.8),
                          (0.8, 0.8, 0.1),
                          (0.1, 0.8, 0.8)]  # (R,G,B)
         cmap_name = 'my_part_colors'
