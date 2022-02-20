@@ -241,8 +241,8 @@ if __name__ == '__main__':
 
     OUTPUT_REL_PATH = '../outputs'
 
-    NUM_ZONES = [10]  # [2, 10, 20]
-    POPULATION_CARDINALITIES = [20]  # [10, 20, 50]
+    NUM_ZONES = [2, 10, 20, 30]
+    POPULATION_CARDINALITIES = [10, 20, 30]
 
     LOG_LEVEL = log.INFO
     # LOG_LEVEL = log.DEBUG
