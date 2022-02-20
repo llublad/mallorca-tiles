@@ -25,6 +25,24 @@ from mt_Zone import Zone
 import mt_common as our
 
 
+def _calc_value_deviation_score(value: float, mean: float, margin: float):
+    # calculate the score of the population deviation respect to the mean
+    # taking margin into account
+
+    try:
+        ratio_1 = abs(value / mean - 1)
+
+    except ZeroDivisionError:
+        ratio_1 = 0
+
+    if ratio_1 <= margin:
+        score = our.GA_TOLERABLE_MARGIN_SCORE_SLOPE * ratio_1
+    else:
+        score = ratio_1
+
+    return score
+
+
 class Partition:
     """
     Class that encapsulates the genotype of a map partition
@@ -218,7 +236,7 @@ class Partition:
             # calculate the connectivity cost of the zone
             # and the number of unconnected parts
             zone.calc_cost()
-            # get the connectivity cost
+            # get the zone mean connectivity cost
             zone_cost = zone.get_cost()
             # get the number of unconnected parts
             zone_unconnected = zone.get_unconnected()
@@ -226,7 +244,10 @@ class Partition:
             zone_value = zone.get_value()
             # calculate the partial score due to this zone configuration
             # zone_score = abs(zone_value - self.mean_value) + self.mean_value * (zone_cost + zone_unconnected)
-            zone_score = (abs(zone_value / self.mean_value - 1) + zone_cost + zone_unconnected) / self.num_zones
+            zone_score = (_calc_value_deviation_score(value=zone_value, mean=self.mean_value,
+                                                      margin=our.GA_TOLERABLE_MARGIN_ZONE_VALUE) +
+                          our.GA_MEAN_ZONE_COST_WEIGHT * zone_cost +
+                          our.GA_UNCONNECTED_ZONE_WEIGHT * zone_unconnected) / self.num_zones
             # carry zone score
             score += zone_score
 

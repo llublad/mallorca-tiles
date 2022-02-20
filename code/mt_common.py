@@ -40,6 +40,11 @@ GA_CROSSOVER_PROB = 0.95
 GA_MUTATION_PROB = 0.05
 GA_TOURNAMENT_ADVERSARIES = 4
 GA_NEXT_GENERATION_HOLD = 0.20  # mantain at least this percentage of fathers between generations
+GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.10  # tolerable margin for the zone population value
+GA_TOLERABLE_MARGIN_SCORE_SLOPE = 0.10  # multiplier of the score into tolerable deviation
+GA_MEAN_ZONE_COST_WEIGHT = 2.  # weight of the zone mean connectivity cost
+GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight of unconnected zones count
+GA_1_DISTRICT_ZONE_MEAN_COST = 0.8  # mean connectivity cost assigned to 1-district zones
 
 # what are the interesting fields in loaded from file panda DataFrame
 PD_DATA_CODE_FIELD = 'CODE'

@@ -90,7 +90,7 @@ class Zone:
         return zone_value
 
     def get_cost(self):
-        # return the connectivity cost of the whole zone
+        # return the mean connectivity cost of the whole zone
         #
 
         if self._conn_cost is not None:
@@ -144,7 +144,7 @@ class Zone:
         pass
 
     def calc_cost(self):
-        # calculate the connectivity cost value
+        # calculate the mean connectivity cost value
         # as the average of the connectivity cost
         # of each pair of districts that composed the zone
         #
@@ -188,9 +188,9 @@ class Zone:
             # the lower, the better
             mean_cost = total_cost / total_connections
         else:
-            # assign maximum mean_cost value to penalize 1-district zones
+            # assign a mean_cost value to 1-district zones
             # or zones with all its distritcs unconnected
-            mean_cost = 1.
+            mean_cost = our.GA_1_DISTRICT_ZONE_MEAN_COST
 
         self._conn_cost = mean_cost
 
