@@ -818,6 +818,14 @@ class PartitionDesigner:
         cax.bar(x=range(1, self.num_zones + 1), height=values,
                 color=self.palette)
 
+        # plot upper, mean and lower values reference line
+        upper_value = self.mean_value * (1 + our.GA_TOLERABLE_MARGIN_ZONE_VALUE)
+        lower_value = self.mean_value * (1 - our.GA_TOLERABLE_MARGIN_ZONE_VALUE)
+
+        cax.axhline(y=self.mean_value, color='black', linestyle='dotted', linewidth=4)
+        cax.axhline(y=upper_value, color='red', linestyle='dotted', linewidth=2)
+        cax.axhline(y=lower_value, color='red', linestyle='dotted', linewidth=2)
+
         cax.set_xticks([i for i in range(1, self.num_zones + 1)])
 
         pass

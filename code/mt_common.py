@@ -33,12 +33,12 @@ PLOT_SCORE_MG = "At iteration: {}\nBest score was: {:.6f}"
 PLOT_WINDOW_ZOOM = [0.1, 0.25, 0.5, 0.65]  # [wmin_x, wmin_y, wmax_x, wmax_y]
 
 # Genetic Algorithm hiperparameters
-GA_MAX_ITERATIONS = 1000  # hard iterations limit
+GA_MAX_ITERATIONS = 99999  # hard iterations limit
 GA_NOIMPROV_ITERATIONS = 1000  # iterations to stop after no improvement
 GA_LOG_PC_SCORE_IMPROV = 0.05  # print log about score when it improves at least this
-GA_CROSSOVER_PROB = 0.95
-GA_MUTATION_PROB = 0.05
-GA_TOURNAMENT_ADVERSARIES = 4
+GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
+GA_MUTATION_PROB = 0.05  # probability for gen mutation
+GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at turnaments for crossover operator
 GA_NEXT_GENERATION_HOLD = 0.20  # mantain at least this percentage of fathers between generations
 GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.10  # tolerable margin for the zone population value
 GA_TOLERABLE_MARGIN_SCORE_SLOPE = 0.10  # multiplier of the score into tolerable deviation
