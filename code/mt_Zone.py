@@ -258,3 +258,9 @@ class Zone:
         self._unconnected_parts = unconnected
 
         pass
+
+    def get_serialized_zone(self) -> dict:
+
+        serialized_zone = self._districts
+
+        return serialized_zone

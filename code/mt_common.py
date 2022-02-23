@@ -19,31 +19,36 @@ using genetic algorithms
 
 # solutions file name
 FILE_NAME_SEP = '-'
-FILE_MAP_PREFIX = 'MT'
-FILE_MAP_SUFFIX = 'MAP'
-FILE_MAP_EXT = '.png'
+FILE_PREFIX = 'MT'
 FILE_DATESTAMP_FMT = '%Y%m%d_%H%M%S'
 FILE_NZ_LIT = 'nz'  # number of zones to obtain
 FILE_PC_LIT = 'pc'  # GA used population cardinality
 FILE_IT_LIT = 'it'  # actual iteration number
+FILE_IS_SOLUTION = 'SOL'
+FILE_MAP_SUFFIX = 'MAP'
+FILE_MAP_EXT = '.png'
+FILE_TXT_SUFFIX = 'ALPHA'
+FILE_TXT_EXT = '.json'
 
 # solutions plot
 PLOT_FIGSIZE = (20, 15)  # Plot figure size
-PLOT_SCORE_MG = "At iteration: {}\nBest score was: {:.6f}"
+PLOT_SCORE_MG = "Last best score was: {:.6f}"
 PLOT_WINDOW_ZOOM = [0.1, 0.25, 0.5, 0.65]  # [wmin_x, wmin_y, wmax_x, wmax_y]
 
 # Genetic Algorithm hiperparameters
 GA_MAX_ITERATIONS = 99999  # hard iterations limit
-GA_NOIMPROV_ITERATIONS = 1000  # iterations to stop after no improvement
-GA_LOG_PC_SCORE_IMPROV = 0.05  # print log about score when it improves at least this
+GA_NOIMPROV_ITERATIONS = 3000  # iterations to stop after no improvement
+GA_INFO_ITERATIONS = 100  # log info at least each n iterations if there are any score variation
+GA_LOG_PC_SCORE_IMPROV = 0.02  # also log score when it improves at least this
 GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
 GA_MUTATION_PROB = 0.05  # probability for gen mutation
 GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at turnaments for crossover operator
-GA_NEXT_GENERATION_HOLD = 0.20  # mantain at least this percentage of fathers between generations
-GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.10  # tolerable margin for the zone population value
-GA_TOLERABLE_MARGIN_SCORE_SLOPE = 0.10  # multiplier of the score into tolerable deviation
-GA_MEAN_ZONE_COST_WEIGHT = 2.  # weight of the zone mean connectivity cost
-GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight of unconnected zones count
+GA_OLD_GENERATION_HOLD = 0.40  # mantain at least this percentage of fathers between generations
+GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.20  # tolerable margin for the zone population value
+GA_TOLERABLE_MARGIN_SCORE_SLOPE = 0.40  # multiplier of the population value deviation into tolerable margins
+GA_UNTOLERABLE_MARGIN_SCORE_SLOPE = 1.  # multiplier of the population value deviation out of tolerable margins
+GA_MEAN_ZONE_COST_WEIGHT = 0.10  # weight of the zone mean connectivity cost
+GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
 GA_1_DISTRICT_ZONE_MEAN_COST = 0.8  # mean connectivity cost assigned to 1-district zones
 
 # what are the interesting fields in loaded from file panda DataFrame
@@ -83,8 +88,16 @@ MG_INFO_INITIAL_SCORE = \
     "The initial best score is {:.6f}"
 MG_INFO_LAST_SCORE = \
     "After {} iterations best score is {:.6f}"
-MG_INFO_SAVING = \
+MG_INFO_SOLUTION_FOUND = \
+    "After {} iterations solution score is {:.6f}"
+MG_INFO_SAVING_MAP = \
     "Saving status map at iteration {} to file {}"
+MG_INFO_SAVING_TXT = \
+    "Saving status json at iteration {} to file {}"
+MG_INFO_ZONE_LOWER = \
+    "Zone {} with value {} is below the lower margin boundary {:0n}"
+MG_INFO_ZONE_UPPER = \
+    "Zone {} with value {} is above the upper margin boundary {:0n}"
 MG_ERROR_DATA = \
     f"'data' must be a DataFrame with '{PD_DATA_CODE_FIELD}' and '{PD_DATA_VALUE_FIELD}' fields"
 MG_ERROR_CONN = \

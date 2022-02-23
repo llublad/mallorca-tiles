@@ -25,6 +25,17 @@ from mt_Zone import Zone
 import mt_common as our
 
 
+def _calc_lower_upper_bound(mean: float) -> (float, float):
+    # return tuple lower and upper values tolerable boundaries
+    #
+
+    lower_bound = round(mean * (1 - our.GA_TOLERABLE_MARGIN_ZONE_VALUE), 0)
+
+    upper_bound = round(mean * (1 + our.GA_TOLERABLE_MARGIN_ZONE_VALUE), 0)
+
+    return lower_bound, upper_bound
+
+
 def _calc_value_deviation_score(value: float, mean: float, margin: float):
     # calculate the score of the population deviation respect to the mean
     # taking margin into account
@@ -38,7 +49,7 @@ def _calc_value_deviation_score(value: float, mean: float, margin: float):
     if ratio_1 <= margin:
         score = our.GA_TOLERABLE_MARGIN_SCORE_SLOPE * ratio_1
     else:
-        score = ratio_1
+        score = our.GA_UNTOLERABLE_MARGIN_SCORE_SLOPE * ratio_1
 
     return score
 
@@ -272,3 +283,22 @@ class Partition:
                 self.genotype[i] = new_p
 
         pass
+
+    def get_serialized_partition(self):
+        # return serialized partition
+        #
+
+        lowb, uppb = _calc_lower_upper_bound(self.mean_value)
+
+        serialized_partition = dict()
+
+        for ind, zon in enumerate(self.zones):
+
+            serialized_partition[ind] = zon.get_serialized_zone()
+
+            if zon.get_value() < lowb:
+                self.logger.warning(our.MG_INFO_ZONE_LOWER.format(ind, zon.get_value(), lowb))
+            elif zon.get_value() > uppb:
+                self.logger.warning(our.MG_INFO_ZONE_UPPER.format(ind, zon.get_value(), uppb))
+
+        return serialized_partition

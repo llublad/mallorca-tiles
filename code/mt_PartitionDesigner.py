@@ -28,6 +28,7 @@ import logging as log
 import random
 import os
 from datetime import datetime
+import json
 
 #
 # ours libraries
@@ -192,7 +193,7 @@ def check_gpd_boundary(gpd_bound: gpd.GeoDataFrame):
 
 def _compute_file_name(prefix: str, suffix: str, sep: str, ext: str,
                        dt: datetime, num_zones: int, pop_card: int,
-                       iteration: int):
+                       iteration: int, is_solution: bool):
     # generate and return a valid file name
     #
 
@@ -200,7 +201,7 @@ def _compute_file_name(prefix: str, suffix: str, sep: str, ext: str,
             type(sep) != str or len(sep) == 0 or \
             type(ext) != str or type(dt) != datetime or \
             type(num_zones) != int or type(pop_card) != int or \
-            type(iteration) != int:
+            type(iteration) != int or type(is_solution) != bool:
         raise ValueError(our.MG_DEBUG_INTERNAL_ERROR)
 
     elements = list()
@@ -231,12 +232,25 @@ def _compute_file_name(prefix: str, suffix: str, sep: str, ext: str,
         elements.append(sep)
         elements.append(suffix)
 
+    if is_solution:
+        elements.append(sep)
+        elements.append(our.FILE_IS_SOLUTION)
+
     if len(ext) > 0:
         elements.append(ext)
 
     f_name = ''.join([el for el in elements])
 
     return f_name
+
+
+def get_solution_dict(partition: Partition):
+    # get proposed solution
+    #
+
+    sol_dict = partition.get_serialized_partition()
+
+    return sol_dict
 
 
 #
@@ -254,6 +268,9 @@ class PartitionDesigner:
     Applying genetic algorithms to zone design.
     Soft Comput 9, 341–348 (2005).
     https://doi.org/10.1007/s00500-004-0413-4
+
+    implementing an additional score component
+    that evaluates the zone internal connectivity cost
 
     :param data: a list with all entities (that we call districts)
         (a row for each one) that will conform
@@ -428,7 +445,7 @@ class PartitionDesigner:
         # no improvement counter
         it_ni = 0
         # log frequency about progress info
-        it_module = max(1, our.GA_MAX_ITERATIONS // 10)
+        it_module = max(1, our.GA_INFO_ITERATIONS)
         # last score reference value
         reference_score: float
 
@@ -476,7 +493,7 @@ class PartitionDesigner:
             self._evaluate_offspring()
 
             # select survivors
-            self._select_next_generation(hold=our.GA_NEXT_GENERATION_HOLD)
+            self._select_next_generation(hold=our.GA_OLD_GENERATION_HOLD)
 
             # which is the best partition?
             self._select_best_partition()
@@ -494,18 +511,19 @@ class PartitionDesigner:
             it += 1
 
             # say something about our progress
-            if it % it_module == 0 or \
+            if it % it_module == 0 and reference_score != self.last_best_score or \
                     reference_score - self.last_best_score > our.GA_LOG_PC_SCORE_IMPROV * reference_score:
                 self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
-                reference_score = self.last_best_score
-                # save current best solution map
+                # save current best solution map if there are score variation
                 self.save_best_map(tstamp=tstamp, iteration=it)
+                reference_score = self.last_best_score
 
-        # also log the last best score if not logged previously
-        if it % it_module != 0:
-            self.logger.info(our.MG_INFO_LAST_SCORE.format(it, self.last_best_score))
-            # save final best solution map
-            self.save_best_map(tstamp=tstamp, iteration=it)
+        # also log the found solution
+        self.logger.info(our.MG_INFO_SOLUTION_FOUND.format(it, self.last_best_score))
+        # save final best solution map
+        self.save_best_map(tstamp=tstamp, iteration=it, is_solution=True)
+        # and the alphanumeric solution
+        self.save_best_solution_file(tstamp=tstamp, iteration=it)
 
         pass
 
@@ -587,11 +605,10 @@ class PartitionDesigner:
         # update the designer score
         # with the best partition score
 
-        # save the last known best score into its list
-        if self.last_best_score is not None:
-            self.best_score_history.append(self.last_best_score)
-
+        # get best score
         self.last_best_score = self.best_partition.get_score()
+        # save the last known best score into its list
+        self.best_score_history.append(self.last_best_score)
 
         pass
 
@@ -600,11 +617,11 @@ class PartitionDesigner:
         # return false otherwise
 
         # if there are any data to compare ...
-        if len(self.best_score_history) > 0:
+        if len(self.best_score_history) > 1:
             # ... then if the better one is the
             # last_best_score ... True
             is_new_score_better = get_best_value_index(
-                [self.best_score_history[-1],
+                [self.best_score_history[-2],
                  self.last_best_score]) == 1
         else:
             is_new_score_better = False
@@ -851,7 +868,7 @@ class PartitionDesigner:
 
             # also tell last score
             cax.text(0.6, 0.9,
-                     our.PLOT_SCORE_MG.format(n_scores, scores[-1]),
+                     our.PLOT_SCORE_MG.format(scores[-1]),
                      horizontalalignment='left', verticalalignment='center',
                      transform=cax.transAxes)
 
@@ -903,31 +920,60 @@ class PartitionDesigner:
         plt.title("Score evolution")
 
         fig.suptitle(t='Proposed solution map at iteration {}\n'
-                       'using: nz={} pc={} p_cros={} p_mut={}'
+                       'Using: n_zones={} pop_card={} prob_cros={} prob_mut={}, '
+                       'tour_adversaries={}, old_gen_hold={}, margin={},\n'
+                       'in_margin_slope={}, out_margin_slope={}, '
+                       'weight_deviation_cost={}, weight_unconnected={}, 1-district_zone_cost={}'
                      .format(iteration, self.num_zones, self.pop_card,
-                             our.GA_CROSSOVER_PROB, our.GA_MUTATION_PROB),
-                     fontsize=16)
+                             our.GA_CROSSOVER_PROB, our.GA_MUTATION_PROB,
+                             our.GA_TOURNAMENT_ADVERSARIES, our.GA_OLD_GENERATION_HOLD,
+                             our.GA_TOLERABLE_MARGIN_ZONE_VALUE, our.GA_TOLERABLE_MARGIN_SCORE_SLOPE,
+                             our.GA_UNTOLERABLE_MARGIN_SCORE_SLOPE, our.GA_MEAN_ZONE_COST_WEIGHT,
+                             our.GA_UNCONNECTED_ZONE_WEIGHT, our.GA_1_DISTRICT_ZONE_MEAN_COST),
+                     fontsize=15)
 
         pass
 
-    def save_best_map(self, tstamp: datetime, iteration: int):
+    def save_best_map(self, tstamp: datetime, iteration: int, is_solution: bool = False):
         # plot the map image of the best partition
         # and then save it to disk
 
         self.plot_partition_map(partition=self.best_partition, iteration=iteration)
 
         map_file_name = _compute_file_name(
-            prefix=our.FILE_MAP_PREFIX, suffix=our.FILE_MAP_SUFFIX, sep=our.FILE_NAME_SEP,
+            prefix=our.FILE_PREFIX, suffix=our.FILE_MAP_SUFFIX, sep=our.FILE_NAME_SEP,
             ext=our.FILE_MAP_EXT, dt=tstamp,
             num_zones=self.num_zones, pop_card=self.pop_card,
-            iteration=iteration)
+            iteration=iteration, is_solution=is_solution)
 
         full_output_fname = os.path.normpath(self.save_maps_to + '/' + map_file_name)
 
         # log file location
-        self.logger.info(our.MG_INFO_SAVING.format(iteration, full_output_fname))
+        self.logger.info(our.MG_INFO_SAVING_MAP.format(iteration, full_output_fname))
 
         plt.savefig(full_output_fname)
         plt.close()
 
-    pass
+        pass
+
+    def save_best_solution_file(self, tstamp: datetime, iteration: int):
+        # save to disk a json file with the better solution
+        #
+
+        txt_file_name = _compute_file_name(
+            prefix=our.FILE_PREFIX, suffix=our.FILE_TXT_SUFFIX, sep=our.FILE_NAME_SEP,
+            ext=our.FILE_TXT_EXT, dt=tstamp,
+            num_zones=self.num_zones, pop_card=self.pop_card,
+            iteration=iteration, is_solution=True)
+
+        full_output_fname = os.path.normpath(self.save_maps_to + '/' + txt_file_name)
+
+        # log file location
+        self.logger.info(our.MG_INFO_SAVING_TXT.format(iteration, full_output_fname))
+
+        solution = get_solution_dict(partition=self.best_partition)
+
+        with open(full_output_fname, 'w') as outfile:
+            json.dump(solution, outfile)
+
+        pass
