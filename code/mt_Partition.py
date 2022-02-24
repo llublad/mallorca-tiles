@@ -41,15 +41,26 @@ def _calc_value_deviation_score(value: float, mean: float, margin: float):
     # taking margin into account
 
     try:
-        ratio_1 = abs(value / mean - 1)
+        ratio = value / mean
 
     except ZeroDivisionError:
-        ratio_1 = 0
+        ratio = 0
 
-    if ratio_1 <= margin:
-        score = our.GA_TOLERABLE_MARGIN_SCORE_SLOPE * ratio_1
+    if margin != 0:
+        # if there are tolerance margin for population value
+        # we can compute the deviation cost as the result
+        # of a quadradic function that acomplishes:
+        # f(mean) = 0
+        # f(mean + margin * mean) = 1
+        # f(mean - margin * mean) = 1
+
+        a = 1 / (margin * margin)
+        b = -2 * a
+        score = a * (ratio * ratio + 1) + b * ratio
+
     else:
-        score = our.GA_UNTOLERABLE_MARGIN_SCORE_SLOPE * ratio_1
+
+        score = abs(ratio - 1)
 
     return score
 

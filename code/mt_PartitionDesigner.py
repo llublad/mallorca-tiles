@@ -832,7 +832,7 @@ class PartitionDesigner:
         values = [zon.get_value() for zon in zones]
 
         # plot bar chart
-        cax.bar(x=range(1, self.num_zones + 1), height=values,
+        cax.bar(x=range(self.num_zones), height=values,
                 color=self.palette)
 
         # plot upper, mean and lower values reference line
@@ -843,7 +843,7 @@ class PartitionDesigner:
         cax.axhline(y=upper_value, color='red', linestyle='dotted', linewidth=2)
         cax.axhline(y=lower_value, color='red', linestyle='dotted', linewidth=2)
 
-        cax.set_xticks([i for i in range(1, self.num_zones + 1)])
+        cax.set_xticks([i for i in range(self.num_zones)])
 
         pass
 
@@ -921,14 +921,13 @@ class PartitionDesigner:
 
         fig.suptitle(t='Proposed solution map at iteration {}\n'
                        'Using: n_zones={} pop_card={} prob_cros={} prob_mut={}, '
-                       'tour_adversaries={}, old_gen_hold={}, margin={},\n'
-                       'in_margin_slope={}, out_margin_slope={}, '
-                       'weight_deviation_cost={}, weight_unconnected={}, 1-district_zone_cost={}'
+                       'tour_adversaries={}, old_gen_hold={},\n'
+                       'value_tolerable_margin={}, weight_deviation_cost={}, '
+                       'weight_unconnected={}, 1-district_zone_cost={}'
                      .format(iteration, self.num_zones, self.pop_card,
                              our.GA_CROSSOVER_PROB, our.GA_MUTATION_PROB,
                              our.GA_TOURNAMENT_ADVERSARIES, our.GA_OLD_GENERATION_HOLD,
-                             our.GA_TOLERABLE_MARGIN_ZONE_VALUE, our.GA_TOLERABLE_MARGIN_SCORE_SLOPE,
-                             our.GA_UNTOLERABLE_MARGIN_SCORE_SLOPE, our.GA_MEAN_ZONE_COST_WEIGHT,
+                             our.GA_TOLERABLE_MARGIN_ZONE_VALUE, our.GA_MEAN_ZONE_COST_WEIGHT,
                              our.GA_UNCONNECTED_ZONE_WEIGHT, our.GA_1_DISTRICT_ZONE_MEAN_COST),
                      fontsize=15)
 
