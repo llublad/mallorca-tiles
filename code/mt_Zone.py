@@ -82,7 +82,7 @@ class Zone:
         return center
 
     def get_value(self):
-        # return the total vallue of the zone
+        # return the total value of the zone
         #
 
         zone_value = self._zone_value
@@ -112,7 +112,7 @@ class Zone:
         return unconnected
 
     def get_districts_codes(self) -> list:
-        # return a list of the codes of the distritcs at this zone
+        # return a list of the codes of the districts at this zone
         #
 
         districts = self._districts.keys()
@@ -149,7 +149,7 @@ class Zone:
         # of each pair of districts that composed the zone
         #
         # also detects the number of isolated parts
-        # and updates its attribute accordindly
+        # and updates its attribute accordingly
 
         # construct our districts list of codes
         district_code_list = list(self._districts.keys())
@@ -189,7 +189,7 @@ class Zone:
             mean_cost = total_cost / total_connections
         else:
             # assign a mean_cost value to 1-district zones
-            # or zones with all its distritcs unconnected
+            # or zones with all its districts unconnected
             mean_cost = our.GA_1_DISTRICT_ZONE_MEAN_COST
 
         self._conn_cost = mean_cost
@@ -201,7 +201,7 @@ class Zone:
         # log a zone dump
 
         self._logger.debug("Center:            {}".format(self._center))
-        self._logger.debug("Distritcs list:    {}".format(self._districts))
+        self._logger.debug("Districts list:    {}".format(self._districts))
         self._logger.debug("Total zone value:  {}".format(self._zone_value))
         self._logger.debug("Connectivity cost: {}".format(self._conn_cost))
 
@@ -214,9 +214,9 @@ class Zone:
 
         # locate its neighbours
         dis_entry = self._districts.get(districts[pos])
-        neigbours = dis_entry.get(3).get(our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST)
+        neighbours = dis_entry.get(3).get(our.DICT_DISTRICT_NEIGHBOURS_CODE_LIST)
 
-        neighbours_into_zone = _intersection(neigbours, districts)
+        neighbours_into_zone = _intersection(neighbours, districts)
 
         for neig in neighbours_into_zone:
             neig_pos = districts.index(neig)
@@ -235,7 +235,7 @@ class Zone:
         # get list of own district codes
         districts = self.get_districts_codes()
 
-        # creata a vector of visited districts status (boolean)
+        # create a vector of visited districts status (boolean)
         self.visited_status = [False] * len(districts)
 
         # start tour at first district

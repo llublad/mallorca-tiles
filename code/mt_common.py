@@ -42,8 +42,8 @@ GA_INFO_ITERATIONS = 100  # log info at least each n iterations if there are any
 GA_LOG_PC_SCORE_IMPROV = 0.02  # also log score when it improves at least this
 GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
 GA_MUTATION_PROB = 0.05  # probability for gen mutation
-GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at turnaments for crossover operator
-GA_OLD_GENERATION_HOLD = 0.20  # mantain at least this percentage of fathers between generations
+GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
+GA_OLD_GENERATION_HOLD = 0.20  # maintain at least this percentage of fathers between generations
 GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
 GA_MEAN_ZONE_COST_WEIGHT = 0.7  # weight of the zone mean connectivity cost
 GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
@@ -58,7 +58,7 @@ PD_DATA_VALUE_FIELD = 'VALUE'
 GPD_DATA_CODE_FIELD = 'CODE'
 GPD_GEOMETRY_FIELD = 'geometry'
 
-# what are containig the columns in the list of data
+# what is contained at the columns in the list of data
 LIST_DATA_CODE_COL = 0
 LIST_DATA_VALUE_COL = 1
 

@@ -49,7 +49,7 @@ def _calc_value_deviation_score(value: float, mean: float, margin: float):
     if margin != 0:
         # if there are tolerance margin for population value
         # we can compute the deviation cost as the result
-        # of a quadradic function that acomplishes:
+        # of a quadratic function that accomplishes:
         # f(mean) = 0
         # f(mean + margin * mean) = 1
         # f(mean - margin * mean) = 1
@@ -96,7 +96,7 @@ class Partition:
             our.MG_INFO_PARTITION_INIT.format(
                 self.num_districts, self.num_zones, self.mean_value))
 
-        # calc cartesian boundaris (the smaller rectangle that cotains the map)
+        # calc cartesian boundaries (the smaller rectangle that contains the map)
         [self.x_min, self.y_min, self.x_max, self.y_max] = \
             self.valid_area.bounds
 

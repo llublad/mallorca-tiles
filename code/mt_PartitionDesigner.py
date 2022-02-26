@@ -296,7 +296,7 @@ class PartitionDesigner:
     :param pop_card: an integer with the (initial) population cardinality
     :param logger: a Logger object
     :param gpd_bound: a GeoDataFrame containing the map boundary
-    :param gpd_dis: a GeoDataFrame containig the district geo-entities
+    :param gpd_dis: a GeoDataFrame containing the district geo-entities
     :param save_maps_to: path to folder where the maps will be saved
 
     Example for geodata dict:
@@ -370,7 +370,7 @@ class PartitionDesigner:
 
             # the genotypes list
             self.partition = list()
-            # wich one is the best?
+            # which one is the best?
             self.best_partition = None
             # what is the last best partition score?
             self.last_best_score = None
@@ -550,7 +550,7 @@ class PartitionDesigner:
 
     def _compose_parents(self):
         # compose parents partitions
-        # assigning the distrits to the nearest
+        # assigning the districts to the nearest
         # zone centroid point
 
         for part in self.partition:
@@ -560,7 +560,7 @@ class PartitionDesigner:
 
     def _compose_offspring(self):
         # compose children partitions
-        # assigning the distrits to the nearest
+        # assigning the districts to the nearest
         # zone centroid point
 
         for part in self.offspring:
@@ -635,7 +635,7 @@ class PartitionDesigner:
         # construct the candidates list
         candidates = list(set(self.partition) - set(self.daddy) - set(self.mummy))
 
-        # select at most n_adversaries (with reemplacement)
+        # select at most n_adversaries (with replacement)
         adversaries = random.choices(candidates, k=n_adversaries)
 
         best = None
@@ -724,7 +724,7 @@ class PartitionDesigner:
 
     def _select_next_generation(self, hold: float):
         # apply elitist strategy
-        # to mantain at least 'hold' per-unit of the best parents
+        # to maintain at least 'hold' per-unit of the best parents
         # and select only the best children partitions until
         # population cardinality is reached
 
@@ -736,26 +736,26 @@ class PartitionDesigner:
         parents_list = sorted(self.partition, key=lambda part: part.score,
                               reverse=reverse_sorting)
 
-        # obtain an ordered childs list by score
+        # obtain an ordered children list by score
         child_list = sorted(self.offspring, key=lambda part: part.score,
                             reverse=reverse_sorting)
 
         # how many partitions must survive?
         n_population = self.pop_card
 
-        # how many of them must be childs?
-        n_childs = int((1 - hold) * n_population)
+        # how many of them must be children?
+        n_child = int((1 - hold) * n_population)
 
         # due to crossover probability
-        # it can happen to have an insuficient offspring cardinality,
+        # it can happen to have an insufficient offspring cardinality,
         # so we must assure a constant population
-        n_childs = min(n_childs, len(self.offspring))
+        n_child = min(n_child, len(self.offspring))
 
         # how many of them must be parents?
-        n_parents = n_population - n_childs
+        n_parents = n_population - n_child
 
         # and save the new list formed by each one top partitions
-        self.partition = parents_list[:n_parents] + child_list[:n_childs]
+        self.partition = parents_list[:n_parents] + child_list[:n_child]
 
         # also delete the offspring
         self.offspring = list()
@@ -804,7 +804,7 @@ class PartitionDesigner:
         # add zone's ids column to be able to color it
         gdf['Zone'] = zone_id_list
 
-        # plot each zone using diferent colors
+        # plot each zone using different colors
         gdf[gdf['Zone'] != -1].plot(ax=cax, column='Zone', cmap=self.cmap)
 
         # plot colored zone centers
