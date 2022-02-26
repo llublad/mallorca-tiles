@@ -417,7 +417,7 @@ class PartitionDesigner:
 
         colors_vector = [(0.8, 0.1, 0.1),
                          (0.1, 0.8, 0.1),
-                         (0.8, 0.1, 0.8),
+                         (0.5, 0.0, 0.6),
                          (0.8, 0.8, 0.1),
                          (0.1, 0.8, 0.8)]  # (R,G,B)
         cmap_name = 'my_part_colors'
@@ -470,7 +470,7 @@ class PartitionDesigner:
         self.save_best_map(tstamp=tstamp, iteration=it)
 
         while it < our.GA_MAX_ITERATIONS and \
-                it_ni < our.GA_NOIMPROV_ITERATIONS:
+                it_ni < our.GA_NONIMPROV_ITERATIONS:
             # select parental couples
             # by selecting the winner of the tournament
             # of GA_TOURNAMENT_ADVERSARIES adversaries
@@ -493,7 +493,7 @@ class PartitionDesigner:
             self._evaluate_offspring()
 
             # select survivors
-            self._select_next_generation(hold=our.GA_OLD_GENERATION_HOLD)
+            self._select_next_generation(hold=our.GA_PARENTS_TO_HOLD)
 
             # which is the best partition?
             self._select_best_partition()
@@ -836,8 +836,8 @@ class PartitionDesigner:
                 color=self.palette)
 
         # plot upper, mean and lower values reference line
-        upper_value = self.mean_value * (1 + our.GA_TOLERABLE_MARGIN_ZONE_VALUE)
-        lower_value = self.mean_value * (1 - our.GA_TOLERABLE_MARGIN_ZONE_VALUE)
+        upper_value = self.mean_value * (1 + our.GA_MARGIN_ZONE_VALUE)
+        lower_value = self.mean_value * (1 - our.GA_MARGIN_ZONE_VALUE)
 
         cax.axhline(y=self.mean_value, color='black', linestyle='dotted', linewidth=4)
         cax.axhline(y=upper_value, color='red', linestyle='dotted', linewidth=2)
@@ -920,14 +920,16 @@ class PartitionDesigner:
         plt.title("Score evolution")
 
         fig.suptitle(t='Proposed solution map at iteration {}\n'
-                       'Using: n_zones={} pop_card={} prob_cros={} prob_mut={}, '
-                       'tour_adversaries={}, old_gen_hold={},\n'
-                       'value_tolerable_margin={}, weight_deviation_cost={}, '
+                       'Using: n_zones={} pop_card={} prob_cross={} prob_mutation={}, '
+                       'tournament_adversaries={}, parents_to_hold={},\n'
+                       'value_tolerable_margin={}, score_coef_when_value_into_margin{}, '
+                       'weight_deviation_cost={}, '
                        'weight_unconnected={}, 1-district_zone_cost={}'
                      .format(iteration, self.num_zones, self.pop_card,
                              our.GA_CROSSOVER_PROB, our.GA_MUTATION_PROB,
-                             our.GA_TOURNAMENT_ADVERSARIES, our.GA_OLD_GENERATION_HOLD,
-                             our.GA_TOLERABLE_MARGIN_ZONE_VALUE, our.GA_MEAN_ZONE_COST_WEIGHT,
+                             our.GA_TOURNAMENT_ADVERSARIES, our.GA_PARENTS_TO_HOLD,
+                             our.GA_MARGIN_ZONE_VALUE, our.GA_INTO_MARGIN_REDUCTION,
+                             our.GA_MEAN_ZONE_COST_WEIGHT,
                              our.GA_UNCONNECTED_ZONE_WEIGHT, our.GA_1_DISTRICT_ZONE_MEAN_COST),
                      fontsize=15)
 
