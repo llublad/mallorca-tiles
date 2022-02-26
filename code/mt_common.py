@@ -17,6 +17,20 @@ using genetic algorithms
 # some constants
 #
 
+# Genetic Algorithm hiperparameters
+GA_MAX_ITERATIONS = 99999  # hard iterations limit
+GA_NOIMPROV_ITERATIONS = 3000  # iterations to stop after no improvement
+GA_INFO_ITERATIONS = 100  # log info at least each n iterations if there are any score variation
+GA_LOG_PC_SCORE_IMPROV = 0.02  # also log score when it improves at least this
+GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
+GA_MUTATION_PROB = 0.05  # probability for gen mutation
+GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
+GA_OLD_GENERATION_HOLD = 0.20  # maintain at least this percentage of fathers between generations
+GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
+GA_MEAN_ZONE_COST_WEIGHT = 0.5  # weight of the zone mean connectivity cost
+GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
+GA_1_DISTRICT_ZONE_MEAN_COST = 0.8  # mean connectivity cost assigned to 1-district zones
+
 # solutions file name
 FILE_NAME_SEP = '-'
 FILE_PREFIX = 'MT'
@@ -34,20 +48,6 @@ FILE_TXT_EXT = '.json'
 PLOT_FIGSIZE = (20, 15)  # Plot figure size
 PLOT_SCORE_MG = "Last best score was: {:.6f}"
 PLOT_WINDOW_ZOOM = [0.1, 0.25, 0.5, 0.65]  # [wmin_x, wmin_y, wmax_x, wmax_y]
-
-# Genetic Algorithm hiperparameters
-GA_MAX_ITERATIONS = 99999  # hard iterations limit
-GA_NOIMPROV_ITERATIONS = 3000  # iterations to stop after no improvement
-GA_INFO_ITERATIONS = 100  # log info at least each n iterations if there are any score variation
-GA_LOG_PC_SCORE_IMPROV = 0.02  # also log score when it improves at least this
-GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
-GA_MUTATION_PROB = 0.05  # probability for gen mutation
-GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
-GA_OLD_GENERATION_HOLD = 0.20  # maintain at least this percentage of fathers between generations
-GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
-GA_MEAN_ZONE_COST_WEIGHT = 0.7  # weight of the zone mean connectivity cost
-GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
-GA_1_DISTRICT_ZONE_MEAN_COST = 0.8  # mean connectivity cost assigned to 1-district zones
 
 # what are the interesting fields in loaded from file panda DataFrame
 PD_DATA_CODE_FIELD = 'CODE'

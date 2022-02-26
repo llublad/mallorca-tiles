@@ -11,6 +11,7 @@ Partition class - library
 #
 # system libraries
 #
+
 from shapely.geometry.base import BaseGeometry
 from shapely.geometry.point import Point
 import logging as log
