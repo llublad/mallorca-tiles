@@ -17,19 +17,24 @@ using genetic algorithms
 # some constants
 #
 
-# Genetic Algorithm hiperparameters
+# Genetic Algorithm hyper-parameters
 GA_MAX_ITERATIONS = 99999  # hard iterations limit
-GA_NOIMPROV_ITERATIONS = 3000  # iterations to stop after no improvement
+GA_NONIMPROV_ITERATIONS = 3000  # iterations to stop after no improvement
+GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
+GA_MUTATION_PROB = 0.01  # probability for gen mutation
+GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
+GA_PARENTS_TO_HOLD = 0.20  # maintain at least this percentage of fathers between generations
+GA_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
+GA_INTO_MARGIN_REDUCTION = 0.40  # score reduction coefficient when zone population value into boundaries
+GA_MEAN_ZONE_COST_WEIGHT = 0.50  # weight of the zone mean connectivity cost
+GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
+# because it's not possible to compute a connectivity cost for 1-district zones,
+# we assign to them a feasible value:
+GA_1_DISTRICT_ZONE_MEAN_COST = 0.80  # mean connectivity cost assigned to 1-district zones
+
+# Log progress info at ...
 GA_INFO_ITERATIONS = 100  # log info at least each n iterations if there are any score variation
 GA_LOG_PC_SCORE_IMPROV = 0.02  # also log score when it improves at least this
-GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
-GA_MUTATION_PROB = 0.05  # probability for gen mutation
-GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
-GA_OLD_GENERATION_HOLD = 0.20  # maintain at least this percentage of fathers between generations
-GA_TOLERABLE_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
-GA_MEAN_ZONE_COST_WEIGHT = 0.5  # weight of the zone mean connectivity cost
-GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
-GA_1_DISTRICT_ZONE_MEAN_COST = 0.8  # mean connectivity cost assigned to 1-district zones
 
 # solutions file name
 FILE_NAME_SEP = '-'
