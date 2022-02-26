@@ -30,9 +30,9 @@ def _calc_lower_upper_bound(mean: float) -> (float, float):
     # return tuple lower and upper values tolerable boundaries
     #
 
-    lower_bound = round(mean * (1 - our.GA_TOLERABLE_MARGIN_ZONE_VALUE), 0)
+    lower_bound = round(mean * (1 - our.GA_MARGIN_ZONE_VALUE), 0)
 
-    upper_bound = round(mean * (1 + our.GA_TOLERABLE_MARGIN_ZONE_VALUE), 0)
+    upper_bound = round(mean * (1 + our.GA_MARGIN_ZONE_VALUE), 0)
 
     return lower_bound, upper_bound
 
@@ -42,26 +42,36 @@ def _calc_value_deviation_score(value: float, mean: float, margin: float):
     # taking margin into account
 
     try:
-        ratio = value / mean
+        ratio_1 = value / mean - 1
 
     except ZeroDivisionError:
-        ratio = 0
+        ratio_1 = 0
 
     if margin != 0:
         # if there are tolerance margin for population value
-        # we can compute the deviation cost as the result
+        # we compute the deviation cost as the result
         # of a quadratic function that accomplishes:
         # f(mean) = 0
         # f(mean + margin * mean) = 1
         # f(mean - margin * mean) = 1
+        #
+        # the function that accomplish the above conditions is:
+        # f(value) = [ (value / mean - 1) / margin ]^2
 
-        a = 1 / (margin * margin)
-        b = -2 * a
-        score = a * (ratio * ratio + 1) + b * ratio
+        if -margin < ratio_1 < margin:
+            # when the zone value is into margin boundaries,
+            # reduce calculated deviation cost using GA_INTO_MARGIN_REDUCTION,
+            # to promote the connectivity cost (weighted by GA_MEAN_ZONE_COST_WEIGHT)
+            # this way we spect that the zones will get a more compact shape
+            score = our.GA_INTO_MARGIN_REDUCTION * ratio_1 / margin * ratio_1 / margin
+        else:
+            score = ratio_1 / margin * ratio_1 / margin
 
     else:
+        # if there are no margin,
+        # we use the absolute value
 
-        score = abs(ratio - 1)
+        score = abs(ratio_1)
 
     return score
 
@@ -268,7 +278,7 @@ class Partition:
             # calculate the partial score due to this zone configuration
             # zone_score = abs(zone_value - self.mean_value) + self.mean_value * (zone_cost + zone_unconnected)
             zone_score = (_calc_value_deviation_score(value=zone_value, mean=self.mean_value,
-                                                      margin=our.GA_TOLERABLE_MARGIN_ZONE_VALUE) +
+                                                      margin=our.GA_MARGIN_ZONE_VALUE) +
                           our.GA_MEAN_ZONE_COST_WEIGHT * zone_cost +
                           our.GA_UNCONNECTED_ZONE_WEIGHT * zone_unconnected) / self.num_zones
             # carry zone score
