@@ -922,7 +922,7 @@ class PartitionDesigner:
         fig.suptitle(t='Proposed solution map at iteration {}\n'
                        'Using: n_zones={} pop_card={} prob_cross={} prob_mutation={}, '
                        'tournament_adversaries={}, parents_to_hold={},\n'
-                       'value_tolerable_margin={}, score_coef_when_value_into_margin{}, '
+                       'value_tolerable_margin={}, score_coef_value_into_margin={}, '
                        'weight_deviation_cost={}, '
                        'weight_unconnected={}, 1-district_zone_cost={}'
                      .format(iteration, self.num_zones, self.pop_card,
