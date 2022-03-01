@@ -87,9 +87,7 @@ def make_my_neighbours_lists(from_geos: gpd.GeoSeries, me: int, ind_vals: list) 
         if (me != j) and is_in_touch[j]:
             total_common_area += common_border_area[j]
 
-    # if there are no common area,
-    # initialize divisor to non-zero value to avoid
-    # the (rare) div/0 case error
+    # make safe if there are no common area
     # (i.e. an isolated district)
     if total_common_area == 0.:
         total_common_area = 1.
