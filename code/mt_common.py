@@ -25,8 +25,8 @@ GA_MUTATION_PROB = 0.01  # probability for gen mutation
 GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
 GA_PARENTS_TO_HOLD = 0.20  # maintain at least this percentage of fathers between generations
 GA_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
-GA_INTO_MARGIN_REDUCTION = 0.40  # score reduction coefficient when zone population value into boundaries
-GA_MEAN_ZONE_COST_WEIGHT = 0.50  # weight of the zone mean connectivity cost
+GA_INTO_MARGIN_REDUCTION = 1.  # score reduction coefficient when zone population value into boundaries
+GA_MEAN_ZONE_COST_WEIGHT = 1.  # weight of the zone mean connectivity cost
 GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
 # because it's not possible to compute a connectivity cost for 1-district zones,
 # we assign to them a feasible value:
@@ -51,7 +51,7 @@ FILE_TXT_EXT = '.json'
 
 # solutions plot
 PLOT_FIGSIZE = (20, 15)  # Plot figure size
-PLOT_SCORE_MG = "Last best score was: {:.6f}"
+PLOT_SCORE_MG = "Last best score was: {:.8f}"
 PLOT_WINDOW_ZOOM = [0.1, 0.25, 0.5, 0.65]  # [wmin_x, wmin_y, wmax_x, wmax_y]
 
 # what are the interesting fields in loaded from file panda DataFrame
