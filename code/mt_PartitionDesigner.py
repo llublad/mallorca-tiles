@@ -923,13 +923,11 @@ class PartitionDesigner:
                        'Using: n_zones={} pop_card={} prob_cross={} prob_mutation={}, '
                        'tournament_adversaries={}, parents_to_hold={},\n'
                        'value_tolerable_margin={}, score_coef_value_into_margin={}, '
-                       'weight_deviation_cost={}, '
                        'weight_unconnected={}, 1-district_zone_cost={}'
                      .format(iteration, self.num_zones, self.pop_card,
                              our.GA_CROSSOVER_PROB, our.GA_MUTATION_PROB,
                              our.GA_TOURNAMENT_ADVERSARIES, our.GA_PARENTS_TO_HOLD,
                              our.GA_MARGIN_ZONE_VALUE, our.GA_INTO_MARGIN_REDUCTION,
-                             our.GA_MEAN_ZONE_COST_WEIGHT,
                              our.GA_UNCONNECTED_ZONE_WEIGHT, our.GA_1_DISTRICT_ZONE_MEAN_COST),
                      fontsize=15)
 

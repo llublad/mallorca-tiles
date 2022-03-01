@@ -25,8 +25,7 @@ GA_MUTATION_PROB = 0.01  # probability for gen mutation
 GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
 GA_PARENTS_TO_HOLD = 0.20  # maintain at least this percentage of fathers between generations
 GA_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
-GA_INTO_MARGIN_REDUCTION = 1.  # score reduction coefficient when zone population value into boundaries
-GA_MEAN_ZONE_COST_WEIGHT = 1.  # weight of the zone mean connectivity cost
+GA_INTO_MARGIN_REDUCTION = 0.50  # score reduction coefficient when zone population value into boundaries
 GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
 # because it's not possible to compute a connectivity cost for 1-district zones,
 # we assign to them a feasible value:
@@ -88,11 +87,11 @@ MG_INFO_PARTITION_INIT = \
 MG_INFO_PARTITIONS_RESTORED = \
     "All partition objects have been restored (stats zeroed and zone list deleted)"
 MG_INFO_INITIAL_SCORE = \
-    "The initial best score is {:.6f}"
+    "The initial best score is {:.8f}"
 MG_INFO_LAST_SCORE = \
-    "After {} iterations best score is {:.6f}"
+    "After {} iterations best score is {:.8f}"
 MG_INFO_SOLUTION_FOUND = \
-    "After {} iterations solution score is {:.6f}"
+    "After {} iterations solution score is {:.8f}"
 MG_INFO_SAVING_MAP = \
     "Saving status map at iteration {} to file {}"
 MG_INFO_SAVING_TXT = \

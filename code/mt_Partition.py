@@ -279,7 +279,7 @@ class Partition:
             # zone_score = abs(zone_value - self.mean_value) + self.mean_value * (zone_cost + zone_unconnected)
             zone_score = (_calc_value_deviation_score(value=zone_value, mean=self.mean_value,
                                                       margin=our.GA_MARGIN_ZONE_VALUE) *
-                          our.GA_MEAN_ZONE_COST_WEIGHT * zone_cost +
+                          zone_cost +
                           our.GA_UNCONNECTED_ZONE_WEIGHT * zone_unconnected) / self.num_zones
             # carry zone score
             score += zone_score
