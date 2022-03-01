@@ -12,10 +12,13 @@ amb similar població amb dret a vot.
 
 ### Funció a optimitzar
 
-Donat que els algorismes genètics persegueixen minimitzar 
-o maximitzar una funció de cost, el treball en proposa algunes 
-que involucren la desviació entre la població de cada zona 
-i la població objectiva. 
+Donat que els algorismes genètics requereixen minimitzar 
+o maximitzar una funció de cost que relacioni 
+els paràmetres de les zones amb l'objectiu, 
+el treball en proposa algunes 
+que involucren la desviació entre la població 
+de cada zona i la població objectiva
+(la mitjana de la població). 
 Altres aspectes que es proposen ponderar són una 
 mesura de la compacitat radial de la zona, definida 
 com el sumatori de totes les distàncies entre el
@@ -25,8 +28,8 @@ també una mesura del seu arrodoniment,
 que és definit com el quocient 
 entre el perímetre al quadrat de la zona i la seva àrea.
 
-Com a exemple, la següent funció 
-a minimitzar té en compte 
+Com a exemple del que s'hi exposa, 
+la següent funció a minimitzar té en compte 
 la desviació poblacional, així com la compacitat 
 radial:
 $$\sum_j\left(\left|P_j - \mu\right| * \sum_{i \in Z_j}d_{ij}\right)$$
@@ -44,8 +47,17 @@ També es quantifica quina és la complexitat de
 l'espai de solucions del problema. 
 De fet la quantitat total de solucions és semblant 
 al número de solucions d'un problema de *clustering*. 
-La fórmula que ho aproxima és: 
+Per tant la fórmula que ho aproxima és la dels
+números de *Stirling* de segona espècie:
 $$S(n, k) = \frac{1}{k!} \sum_{i=1}^k(-1)^i\left(\frac{k}{(k-i)! i!}\right)(k-i)^n$$
+
+Com a exemple, si disposàssim de només 100 unitats
+poblacionals a agrupar en 8 zones, 
+$S(100, 8) \aprox 5.052 * 10^{85}$. 
+És a dir un espai de solucions enorme, 
+si bé es pot reduir en certa mesura
+si tenim en compte que les 
+zones han de ser contínues.
 
 ### Genotip
 
