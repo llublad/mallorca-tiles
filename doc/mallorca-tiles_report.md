@@ -14,8 +14,8 @@ amb similar població amb dret a vot.
 
 Donat que els algorismes genètics requereixen minimitzar 
 o maximitzar una funció de cost que relacioni 
-els paràmetres de les zones amb l'objectiu, 
-el treball en proposa algunes 
+els paràmetres de les zones amb els objectius marcats, 
+el treball esmentat en proposa algunes 
 que involucren la desviació entre la població 
 de cada zona i la població objectiva
 (la mitjana de la població). 
@@ -32,8 +32,14 @@ Com a exemple del que s'hi exposa,
 la següent funció a minimitzar té en compte 
 la desviació poblacional, així com la compacitat 
 radial:
-$$\sum_j\left(\left|P_j - \mu\right| * \sum_{i \in Z_j}d_{ij}\right)$$
 
+<img src="https://render.githubusercontent.com/render/math?math=\sum_j\left(\left|P_j - \mu\right| * \sum_{i \in Z_j}d_{ij}\right)">
+
+```math
+e^i + 1 = 0
+```
+
+On <img src="https://render.githubusercontent.com/render/math?math=P_j">
 On $P_j$ és el valor de la població amb dret a vot 
 de la zona j-èssima, 
 $\mu$ és el total de la població dividit per la 
