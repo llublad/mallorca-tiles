@@ -19,11 +19,11 @@ using genetic algorithms
 
 # Genetic Algorithm hyper-parameters
 GA_MAX_ITERATIONS = 99999  # hard iterations limit
-GA_NONIMPROV_ITERATIONS = 3000  # iterations to stop after no improvement
+GA_NONIMPROV_ITERATIONS = 5000  # iterations to stop after no improvement
 GA_CROSSOVER_PROB = 0.95  # crossover probability for each couple
 GA_MUTATION_PROB = 0.01  # probability for gen mutation
 GA_TOURNAMENT_ADVERSARIES = 4  # number of adversaries at tournaments for crossover operator
-GA_PARENTS_TO_HOLD = 0.20  # maintain at least this percentage of fathers between generations
+GA_PARENTS_TO_HOLD = 0.40  # maintain at least this percentage of fathers between generations
 GA_MARGIN_ZONE_VALUE = 0.25  # tolerable margin for the zone population value
 GA_INTO_MARGIN_REDUCTION = 0.50  # score reduction coefficient when zone population value into boundaries
 GA_UNCONNECTED_ZONE_WEIGHT = 10.  # weight for of unconnected zones count score contribution
