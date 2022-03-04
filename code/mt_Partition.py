@@ -275,11 +275,13 @@ class Partition:
             zone_unconnected = zone.get_unconnected()
             # get the zone value (total zone population)
             zone_value = zone.get_value()
+            # compute deviation score
+            zone_deviation = \
+                _calc_value_deviation_score(value=zone_value, mean=self.mean_value,
+                                            margin=our.GA_MARGIN_ZONE_VALUE)
             # calculate the partial score due to this zone configuration
-            # zone_score = abs(zone_value - self.mean_value) + self.mean_value * (zone_cost + zone_unconnected)
-            zone_score = (_calc_value_deviation_score(value=zone_value, mean=self.mean_value,
-                                                      margin=our.GA_MARGIN_ZONE_VALUE) *
-                          zone_cost +
+            # zone_score = dev_score(zone_value, self.mean_value) + zone_cost + w * zone_unconnected
+            zone_score = (zone_deviation + zone_cost +
                           our.GA_UNCONNECTED_ZONE_WEIGHT * zone_unconnected) / self.num_zones
             # carry zone score
             score += zone_score
